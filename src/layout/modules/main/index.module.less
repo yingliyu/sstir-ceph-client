@@ -1,0 +1,50 @@
+.layout-main {
+  display: flex;
+  flex-flow: column nowrap;
+  min-height: 100vh;
+  height: 100vh;
+  min-width: @containerWidth;
+  :global .ant-layout {
+    background-color: transparent;
+  }
+  :global .ant-layout-sider {
+    background: #fff;
+  }
+  .header {
+    height: 50px;
+    line-height: 50px;
+    display: flex;
+    justify-content: space-between;
+    background-color: @primary-color;
+    color: #fff;
+    b {
+      font-size: 20px;
+    }
+    .user-info {
+      .username {
+        padding-left: 20px;
+      }
+    }
+  }
+
+  .content {
+    margin: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    .breadcrumb-wrapper {
+      height: 24px;
+      background: #f8f9fd;
+      padding-left: 15px;
+      position: relative;
+      .icon-left {
+        display: inline-block;
+        width: 5px;
+        height: 24px;
+        background: #057ab8;
+        border-radius: 8px;
+        position: absolute;
+        left: 0px;
+      }
+    }
+  }
+}

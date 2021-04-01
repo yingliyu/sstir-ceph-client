@@ -1,0 +1,55 @@
+.home {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .login-wrapper {
+    margin-left: 40px;
+    :global .ant-radio-button-wrapper {
+      // width: 159px;
+      // height: 44px;
+      // line-height: 44px;
+      text-align: center;
+      background-color: @bg-color-secondary;
+      border: none;
+    }
+    :global .ant-radio-button-checked {
+      background-color: @primary-color;
+      border-radius: @border-radius-base;
+      border: none;
+    }
+    :global .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+      color: #fff;
+      border: none;
+    }
+    :global .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)::before {
+      width: 0px;
+      height: 0px;
+    }
+    :global input#basic_username,
+    :global #basic_phone,
+    :global #basic_checkCode,
+    :global .ant-input-affix-wrapper.ant-input-password {
+      width: 300px;
+      border: none;
+      border-bottom: 1px solid @border-color-base;
+    }
+    :global input.ant-input {
+      background-color: #fff !important;
+    }
+
+    & > span {
+      font-size: 36px;
+      vertical-align: middle;
+      padding-right: 10px;
+    }
+    p {
+      color: @text-color-secondary;
+      margin-bottom: 30px;
+    }
+    .home-tips {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+}
