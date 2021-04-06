@@ -10,11 +10,15 @@ import { store } from '@/store';
 import { Provider } from 'react-redux';
 import * as serviceWorker from './serviceWorker';
 import reportWebVitals from './reportWebVitals';
+import zhCN from 'antd/es/locale/zh_CN';
+import { ConfigProvider } from 'antd';
 
 ReactDOM.render(
-  <Provider store={store}>
-    <App />
-  </Provider>,
+  <ConfigProvider locale={zhCN}>
+    <Provider store={store}>
+      <App />
+    </Provider>
+  </ConfigProvider>,
   document.getElementById('root')
 );
 

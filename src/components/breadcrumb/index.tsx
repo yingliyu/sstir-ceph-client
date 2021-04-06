@@ -1,6 +1,6 @@
 import React, { FC, memo } from 'react';
 import { Breadcrumb, Space } from 'antd';
-import { HomeOutlined } from '@ant-design/icons';
+import IconFont from '@/utils/iconfont';
 
 import css from './index.module.less';
 
@@ -18,11 +18,11 @@ const BreadcrumbCom: FC<BreadcrumbComProps> = (props) => {
   return (
     <div className={css['breadcrumb-wrapper']}>
       <Breadcrumb>
-        <Breadcrumb.Item href="/home">
-          <Space>
-            <HomeOutlined />
-            首页
-          </Space>
+        <Breadcrumb.Item href="/admin/dashboard">
+          {/* <Space>
+            <IconFont type="cephicon_cunchu" />
+            存储桶
+          </Space> */}
         </Breadcrumb.Item>
         {path?.length
           ? path.map((item, index) => {

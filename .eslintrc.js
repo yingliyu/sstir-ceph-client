@@ -18,6 +18,7 @@ module.exports = {
   },
   rules: {
     // 自定义你的规则
+    '@typescript-eslint/no-non-null-asserted-optional-chain': 'off'
   },
   settings: {
     react: {

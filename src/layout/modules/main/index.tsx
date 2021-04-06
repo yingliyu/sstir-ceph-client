@@ -1,5 +1,7 @@
 import React, { FC, useState, useEffect } from 'react';
-import { Layout, Menu, Badge, Breadcrumb } from 'antd';
+import { Layout, Menu, Badge } from 'antd';
+import Breadcrumb, { BreadcrumbPath } from '@/components/breadcrumb';
+import IconFont from '@/utils/iconfont';
 import { RouterMain } from '@/router';
 import css from './index.module.less';
 import msgIcon from './imgs/msg.png';
@@ -8,14 +10,17 @@ const { SubMenu } = Menu;
 
 const LayoutMain: FC = (props: any) => {
   console.log(props);
-
+  const [breadcrumbList, setBreadcrumbList] = useState<BreadcrumbPath[]>([]);
   const [collapsed, setCollapsed] = useState(false);
-
   const [openMenu, setOpenMenu] = useState<string[]>([]);
 
   useEffect(() => {
     getOpenMenu();
-    /* eslint-disable */
+    setBreadcrumbList([
+      { text: '存储桶', link: '/admin/dashboard' }
+      // { text: '文件列表', link: '' }
+    ]);
+    // /* eslint-disable */
   }, []);
 
   const toggleCollapsed = () => {
@@ -65,29 +70,41 @@ const LayoutMain: FC = (props: any) => {
             selectedKeys={props.location.pathname}
             onOpenChange={handleOpenChange}
           >
-            {RouterMain.filter((item) => !item.noMenu).map((router) =>
-              router.child ? (
+            {RouterMain.filter((item) => !item.noMenu).map((router: any) =>
+              router?.child ? (
                 <SubMenu
                   key={router.path}
                   title={
                     <span>
-                      {router.icon ? <router.icon /> : null}
+                      {router?.iconType ? (
+                        <IconFont type={router.iconType} />
+                      ) : router.icon ? (
+                        <router.icon />
+                      ) : null}
                       <span>{router.name}</span>
                     </span>
                   }
                 >
                   {router.child
-                    .filter((item) => !item.noMenu)
-                    .map((item) => (
+                    .filter((item: any) => !item.noMenu)
+                    .map((item: any) => (
                       <Menu.Item key={item.path}>
-                        {item.icon ? <item.icon /> : null}
+                        {item?.iconType ? (
+                          <IconFont type={item.iconType} />
+                        ) : item.icon ? (
+                          <item.icon />
+                        ) : null}
                         <span>{item.name}</span>
                       </Menu.Item>
                     ))}
                 </SubMenu>
               ) : (
                 <Menu.Item key={router.path}>
-                  {router.icon ? <router.icon /> : null}
+                  {router?.iconType ? (
+                    <IconFont type={router.iconType} />
+                  ) : router.icon ? (
+                    <router.icon />
+                  ) : null}
                   <span>{router.name}</span>
                 </Menu.Item>
               )
@@ -96,16 +113,10 @@ const LayoutMain: FC = (props: any) => {
         </Sider>
         <Content className={css['content']}>
           <div className={css['breadcrumb-wrapper']}>
-            <span className={css['icon-left']}></span>
-            <Breadcrumb separator=">">
-              <Breadcrumb.Item>Home</Breadcrumb.Item>
-              <Breadcrumb.Item href="">Application Center</Breadcrumb.Item>
-              <Breadcrumb.Item href="">Application List</Breadcrumb.Item>
-              <Breadcrumb.Item>An Application</Breadcrumb.Item>
-            </Breadcrumb>
+            <span className={css['icon-left']} />
+            <Breadcrumb path={breadcrumbList} />
           </div>
-
-          {props.children}
+          <div className={css['container']}>{props.children}</div>
         </Content>
       </Layout>
       {/* <Footer>footer</Footer> */}

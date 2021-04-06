@@ -16,6 +16,7 @@ const App = () => {
         exact={!!router.exact}
         key={router.path}
         path={router.path}
+        name={router.name}
         {...routeProps}
         render={(props) => <router.component {...props} />}
       />
@@ -51,6 +52,7 @@ const App = () => {
                           exact={!!item.exact}
                           key={item.path}
                           path={item.path}
+                          name={item.name}
                           component={item.component}
                         />
                       ))
@@ -59,6 +61,7 @@ const App = () => {
                         exact={!!router.exact}
                         key={router.path}
                         path={router.path}
+                        name={router.name}
                         component={router.component}
                       />
                     );

@@ -34,12 +34,7 @@ const Home = (props: any) => {
       dispatch(getUserInfo(token));
     }
   };
-  // tab栏
-  const [val, setVal] = useState('account');
-  const handleChange = (e: any) => {
-    setVal(e.target.value);
-    console.log(e);
-  };
+
   // 表单信息
   const [form] = Form.useForm();
   const layout = {
@@ -71,12 +66,7 @@ const Home = (props: any) => {
       <Input /> */}
       <img src={sideImg} alt="" />
       <div className={css['login-wrapper']}>
-        <span>HI~</span>
-        <Radio.Group value={val} onChange={handleChange}>
-          <Radio.Button value="account">账号登陆</Radio.Button>
-          <Radio.Button value="phone">短信登陆</Radio.Button>
-        </Radio.Group>
-        <p>欢迎登陆Ceph企业版</p>
+        <h1>HI~欢迎登陆Ceph企业版</h1>
         <Form
           {...layout}
           form={form}
@@ -85,56 +75,27 @@ const Home = (props: any) => {
           onFinish={onFinish}
           onFinishFailed={onFinishFailed}
         >
-          {val === 'account' ? (
-            // 账号登陆
-            <>
-              <Form.Item
-                label=""
-                name="username"
-                rules={[{ required: true, message: '请输入注册邮箱!' }]}
-              >
-                <Input placeholder="请输入注册邮箱" />
-              </Form.Item>
-              <Form.Item
-                label=""
-                name="password"
-                rules={[{ required: true, message: '请输入密码!' }]}
-              >
-                <Input.Password placeholder="请输入密码" />
-              </Form.Item>
-            </>
-          ) : (
-            // 短信登陆
-            <>
-              <Form.Item
-                label=""
-                name="phone"
-                rules={[{ required: true, message: '请输入手机号!' }]}
-              >
-                <Input placeholder="请输入手机号" />
-              </Form.Item>
-              <Form.Item
-                label=""
-                name="checkCode"
-                rules={[{ required: true, message: '请输入验证码!' }]}
-              >
-                <Input placeholder="请输入验证码" />
-              </Form.Item>
-            </>
-          )}
+          <Form.Item
+            label=""
+            name="username"
+            rules={[{ required: true, message: '请输入Access Key!' }]}
+          >
+            <Input placeholder="Access Key" />
+          </Form.Item>
+          <Form.Item
+            label=""
+            name="password"
+            rules={[{ required: true, message: '请输入Secret Key!' }]}
+          >
+            <Input.Password placeholder="Secret Key" />
+          </Form.Item>
+
           <Form.Item {...tailLayout}>
             <Button shape="round" block type="primary" htmlType="submit">
               登陆
             </Button>
           </Form.Item>
         </Form>
-
-        <div className={css['home-tips']}>
-          <a href="">忘记密码</a>
-          <span>
-            还没账户？<a href="">去注册</a>
-          </span>
-        </div>
       </div>
     </div>
   );
