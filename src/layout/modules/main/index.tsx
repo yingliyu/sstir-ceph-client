@@ -1,10 +1,11 @@
 import React, { FC, useState, useEffect } from 'react';
-import { Layout, Menu, Badge } from 'antd';
+import { Layout, Menu, Badge, Popover } from 'antd';
 import Breadcrumb, { BreadcrumbPath } from '@/components/breadcrumb';
 import IconFont from '@/utils/iconfont';
 import { RouterMain } from '@/router';
 import css from './index.module.less';
 import msgIcon from './imgs/msg.png';
+import logoIcon from './imgs/logo.png';
 const { Header, Sider, Content, Footer } = Layout;
 const { SubMenu } = Menu;
 
@@ -16,12 +17,51 @@ const LayoutMain: FC = (props: any) => {
 
   useEffect(() => {
     getOpenMenu();
-    setBreadcrumbList([
-      { text: '存储桶', link: '/admin/dashboard' }
-      // { text: '文件列表', link: '' }
-    ]);
-    // /* eslint-disable */
+    writeBreadcrumb();
   }, []);
+  useEffect(() => {
+    writeBreadcrumb();
+    console.log(breadcrumbList);
+  }, [props]);
+
+  // 面包屑导航
+  const writeBreadcrumb = () => {
+    let pathname = props.location.pathname;
+    let arr: any[] = [];
+    let menu = [];
+    // 遍历一级导航
+    RouterMain.forEach((item: any) => {
+      // 遍历二级导航
+      if (pathname.includes(item.path)) {
+        arr.push({
+          link: item.path,
+          text: item.name,
+          key: item.path
+        });
+
+        item?.child &&
+          item?.child.forEach((it: any) => {
+            if (it.path === pathname) {
+              arr.push({
+                link: undefined,
+                text: it.name
+              });
+            }
+          });
+      }
+      const bucketName = '/admin/dashboard/:file';
+      if (pathname.includes('dashboard') && item.path === bucketName) {
+        const text = pathname.split('/')[3];
+        arr.push({
+          link: undefined,
+          key: item.path,
+          text: text
+        });
+      }
+    });
+    // 遍历完后赋值
+    setBreadcrumbList(arr ? arr : []);
+  };
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -37,8 +77,6 @@ const LayoutMain: FC = (props: any) => {
 
   const getOpenMenu = () => {
     const currentPath = props.location.pathname;
-    console.log(props.location.pathname);
-
     const temp = currentPath.split('/');
     if (temp.length > 3) {
       const ret = temp.slice(0, 3).join('/');
@@ -47,17 +85,36 @@ const LayoutMain: FC = (props: any) => {
       return [];
     }
   };
-
+  const content = (
+    <ul>
+      <li>
+        <a>Hi,xxx</a>
+      </li>
+      <li>
+        <a>退出登陆</a>
+      </li>
+    </ul>
+  );
   return (
     <Layout className={css['layout-main']}>
       <Header className={css['header']}>
-        {/* <div className="logo" /> */}
-        <b>存储项目</b>
+        <a href="/admin/dashboard">
+          <img width="25px" src={logoIcon} />
+          <span>Ceph存储</span>
+        </a>
         <div className={css['user-info']}>
-          <Badge count={2}>
-            <img width="20px" src={msgIcon} />
+          <Badge size="small" count={2}>
+            <img width="15px" src={msgIcon} />
           </Badge>
-          <span className={css['username']}>用户名XXX</span>
+          <Popover
+            getPopupContainer={(triggerNode: any) => triggerNode.parentNode}
+            // visible={true}
+            content={content}
+            title={null}
+            trigger="hover"
+          >
+            <span className={css['username']}>用户名XXX</span>
+          </Popover>
         </div>
       </Header>
       <Layout>

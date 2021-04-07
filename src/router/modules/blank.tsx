@@ -4,7 +4,7 @@ import loadable from '@loadable/component';
 
 import Loading from '@/components/loading';
 
-const Home = loadable(() => import(/* webpackChunkname: home */ '@/pages/home'), {
+const Home = loadable(() => import('@/pages/home'), {
   fallback: <Loading />
 });
 

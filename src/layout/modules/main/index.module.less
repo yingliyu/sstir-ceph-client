@@ -17,22 +17,48 @@
     justify-content: space-between;
     background-color: @primary-color;
     color: #fff;
-    b {
+    a {
       font-size: 20px;
+      color: #fff;
+      img {
+        vertical-align: middle;
+      }
+      span {
+        padding-left: 5px;
+      }
     }
     .user-info {
+      display: flex;
+      align-items: center;
       .username {
         padding-left: 20px;
+        font-size: 14px;
+      }
+      :global .ant-popover-inner-content {
+        padding: 0;
+        li {
+          border-bottom: 1px solid #f0f0f0;
+        }
+        a {
+          display: inline-block;
+          padding: 3px 12px;
+          color: #666;
+          font-size: 14px;
+        }
       }
     }
   }
 
   .content {
+    height: calc(100vh - 70px);
+    overflow: hidden;
     margin: 10px;
     background-color: #fff;
     border-radius: 8px;
     .container {
       padding: 30px;
+      height: 100%;
+      overflow: auto;
     }
     .breadcrumb-wrapper {
       height: 24px;

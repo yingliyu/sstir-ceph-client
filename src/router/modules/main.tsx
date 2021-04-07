@@ -51,7 +51,6 @@ const routerMain = [
   // {
   //   path: '/admin/user',
   //   name: '对象存储',
-  //   title: '对象存储',
   //   icon: ToolOutlined,
   //   iconType: '',
   //   noMenu: false,
@@ -59,7 +58,6 @@ const routerMain = [
   //     {
   //       path: '/admin/user/list',
   //       name: '用户',
-  //       title: '用户',
   //       component: UserList,
   //       icon: TeamOutlined,
   //       iconType: '',
@@ -68,7 +66,7 @@ const routerMain = [
   //       state: { name: '用户' }
   //     }
   //   ]
-  // }
+  // },
   // {
   //   path: '/admin/mgt',
   //   name: '系统管理',

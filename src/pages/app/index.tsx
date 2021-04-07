@@ -45,7 +45,6 @@ const App = () => {
               <LayoutBlank {...routeProps}>
                 <Switch>
                   {RouterBlank.map((router) => {
-                    console.log(router);
                     return router.child && router.child.length > 0 ? (
                       router.child.map((item: any) => (
                         <Route

@@ -17,6 +17,8 @@ const Home = (props: any) => {
   const userInfo = useSelector(selectUserInfo);
   const dispatch = useDispatch();
   useEffect(() => {
+    console.log(props);
+
     if (!token) {
       dispatch(checkLogin({ username: '1', password: '2', verifyCode: 'c' }));
     }
