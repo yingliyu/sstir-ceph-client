@@ -9,7 +9,7 @@ export function AppPost<T>(url: string, data: any) {
         if (res.data.code === 200) {
           resolve(res.data.data as T);
         } else {
-          reject(res.data.msg || res.data.errMsg);
+          reject(res.data.msg);
         }
       })
       .catch((err) => {
@@ -33,7 +33,7 @@ export function AppGet<T>(url: string, data: any) {
         if (res.data.code === 200) {
           resolve(res.data.data as T);
         } else {
-          reject(res.data.msg || res.data.errMsg);
+          reject(res.data.msg);
         }
       })
       .catch((err) => {
