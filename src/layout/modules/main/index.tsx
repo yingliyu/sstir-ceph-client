@@ -30,7 +30,7 @@ const LayoutMain: FC = (props: any) => {
     let arr: any[] = [];
     let menu = [];
     // 遍历一级导航
-    RouterMain.forEach((item: any) => {
+    RouterMain?.forEach((item: any) => {
       // 遍历二级导航
       if (pathname.includes(item.path)) {
         arr.push({
