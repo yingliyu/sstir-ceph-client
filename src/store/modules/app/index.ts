@@ -3,6 +3,7 @@ import { AppThunk, RootState } from '@/store';
 import { getToken, setToken as setTokenInCookie } from '@/utils/auth';
 import { appApi } from '@/services';
 import { IGetUserInfoResponse } from '@/services/app/types';
+import { message} from 'antd';
 interface AppState {
   token: string;
   errMsg: string;
@@ -53,11 +54,15 @@ export const { setToken, clearToken, setErrMsg, clearErrMsg, setUserInfo } = app
 // code can then be executed and other actions can be dispatched
 export const checkLogin = (data: any): AppThunk => async (dispatch) => {
   try {
-    const { token } = await appApi.checkLogin(data);
+    const token:any = await appApi.checkLogin(data);
     setTokenInCookie(token);
     dispatch(setToken(token));
+    message.success('登录成功！3s后自动跳转')
+    setTimeout(()=>window.open('/admin/dashboard','_self'), 3000)
   } catch (err) {
-    dispatch(setErrMsg(err.toString()));
+    message.error(err)
+    console.log(initialState.errMsg,err);
+    dispatch(setErrMsg(err||err.toString()));
   }
 };
 
@@ -66,7 +71,8 @@ export const getUserInfo = (token: string): AppThunk => async (dispatch) => {
     const res = await appApi.getUserInfoByToken(token);
     dispatch(setUserInfo(res));
   } catch (err) {
-    dispatch(setErrMsg(err.toString()));
+    message.error(initialState.errMsg)
+    dispatch(setErrMsg(err||err.toString()));
   }
 };
 

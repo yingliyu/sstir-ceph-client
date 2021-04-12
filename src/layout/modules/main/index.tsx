@@ -10,7 +10,6 @@ const { Header, Sider, Content, Footer } = Layout;
 const { SubMenu } = Menu;
 
 const LayoutMain: FC = (props: any) => {
-  console.log(props);
   const [breadcrumbList, setBreadcrumbList] = useState<BreadcrumbPath[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string[]>([]);
@@ -21,7 +20,6 @@ const LayoutMain: FC = (props: any) => {
   }, []);
   useEffect(() => {
     writeBreadcrumb();
-    console.log(breadcrumbList);
   }, [props]);
 
   // 面包屑导航
@@ -30,7 +28,7 @@ const LayoutMain: FC = (props: any) => {
     let arr: any[] = [];
     let menu = [];
     // 遍历一级导航
-    RouterMain.forEach((item: any) => {
+    RouterMain?.forEach((item: any) => {
       // 遍历二级导航
       if (pathname.includes(item.path)) {
         arr.push({

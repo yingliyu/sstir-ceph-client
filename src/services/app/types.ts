@@ -1,11 +1,10 @@
 export interface ICheckLoginRequest {
-  username: string;
-  password: string;
-  verifyCode: string;
+  accessKey: string;
+  secretKey: string;
 }
 
 export interface ICheckLoginResponse {
-  token: string;
+  data: string;
 }
 
 export interface IGetUserInfoResponse {

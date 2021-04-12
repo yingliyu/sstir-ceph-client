@@ -1,7 +1,8 @@
 import instance from './axios';
 import qs from 'qs';
 
-export function AppPost<T>(url: string, data: any) {
+
+export function AppPost<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
       .post(url, data)
@@ -18,7 +19,7 @@ export function AppPost<T>(url: string, data: any) {
   });
 }
 
-export function AppGet<T>(url: string, data: any) {
+export function AppGet<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
       .get(url, {

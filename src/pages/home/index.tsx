@@ -7,7 +7,7 @@ import {
   selectErrMsg,
   selectUserInfo
 } from '@/store/modules/app';
-import { Button, Radio, Input, message, Form } from 'antd';
+import { Button, Input, message, Form } from 'antd';
 import css from './index.module.less';
 import sideImg from './imgs/1.png';
 
@@ -17,17 +17,15 @@ const Home = (props: any) => {
   const userInfo = useSelector(selectUserInfo);
   const dispatch = useDispatch();
   useEffect(() => {
-    console.log(props);
-
     if (!token) {
-      dispatch(checkLogin({ username: '1', password: '2', verifyCode: 'c' }));
+      // dispatch(checkLogin({ accessKey: 'KZSD2SLM3QJ5TJD8KCHZ', secretKey: '0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej' }));
     }
   }, []);
 
   useEffect(() => {
     if (token) {
       // 根据token获取用户信息
-      dispatch(getUserInfo(token));
+      // dispatch(getUserInfo(token));
     }
   }, [token]);
 
@@ -49,10 +47,8 @@ const Home = (props: any) => {
 
   const onFinish = (values: any) => {
     console.log('Success:', values);
-    if (values.username === 'admin' && values.password === '123456') {
-      message.success(`${values.username}恭喜你，登录成功！！！`);
-      setTimeout(() => props.history.push('/admin/dashboard'), 1000);
-    }
+    // dispatch(checkLogin({ accessKey: 'KZSD2SLM3QJ5TJD8KCHZ', secretKey: '0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej' }));
+     dispatch(checkLogin(values));
   };
 
   const onFinishFailed = (errorInfo: any) => {
@@ -73,23 +69,23 @@ const Home = (props: any) => {
           {...layout}
           form={form}
           name="basic"
-          initialValues={{ remember: true }}
+          initialValues={{ accessKey: 'KZSD2SLM3QJ5TJD8KCHZ' ,secretKey:'0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej'}}
           onFinish={onFinish}
           onFinishFailed={onFinishFailed}
         >
           <Form.Item
             label=""
-            name="username"
+            name="accessKey"
             rules={[{ required: true, message: '请输入Access Key!' }]}
           >
             <Input placeholder="Access Key" />
           </Form.Item>
           <Form.Item
             label=""
-            name="password"
+            name="secretKey"
             rules={[{ required: true, message: '请输入Secret Key!' }]}
           >
-            <Input.Password placeholder="Secret Key" />
+            <Input.Password placeholder="Secret Key"  />
           </Form.Item>
 
           <Form.Item {...tailLayout}>
