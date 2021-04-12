@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
+import {bucketApi} from '@/services'
+import {IBucketsResponse} from '@/services/bucket/types'
 import css from './index.module.less';
 
 const data: any[] = [];
@@ -17,7 +19,26 @@ const formItemLayout = {
   wrapperCol: { span: 16 }
 };
 
-function Dashboard() {
+const Dashboard = ()=> {
+  const [bucketList,setBucketLists] = useState<IBucketsResponse[]>([])
+  useEffect(()=>{
+    getBucketLists()
+  },[])
+  const getBucketLists= async()=>{
+    try {
+      const res = await bucketApi.getBuckets()
+      const list:any = res.map((item:IBucketsResponse,index:number)=>({
+        key:index+"_"+item.name.toString(),
+        name:item.name,
+        creationDate:item.creationDate,
+        owner:item.owner.displayName
+      }))
+      console.log(res);
+      setBucketLists(list)
+    } catch (error) {
+      
+    }
+  }
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
@@ -49,19 +70,24 @@ function Dashboard() {
       sorter: true, // 服务端排序
       render: (text: string) => <a href={`/admin/dashboard/${text}`}>{text}</a>
     },
-    {
-      title: '历史版本保护',
-      dataIndex: 'age'
-    },
+    // {
+    //   title: '历史版本保护',
+    //   dataIndex: 'age'
+    // },
     {
       title: '创建时间',
-      dataIndex: 'address',
+      dataIndex: 'creationDate',
       sorter: true
     },
     {
-      title: '锁定状态',
-      dataIndex: 'address'
+      title: '所有者',
+      dataIndex: 'creationDate',
+      sorter: true
     },
+    // {
+    //   title: '锁定状态',
+    //   dataIndex: 'address'
+    // },
     {
       title: '操作',
       dataIndex: '',
@@ -126,7 +152,7 @@ function Dashboard() {
       <Table
         rowSelection={rowSelection}
         columns={columns}
-        dataSource={data}
+        dataSource={bucketList}
         scroll={{ y: '600px' }}
         pagination={{
           position: ['topRight'],

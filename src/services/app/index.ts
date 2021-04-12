@@ -4,7 +4,7 @@ import { ICheckLoginRequest, ICheckLoginResponse, IGetUserInfoResponse } from '.
 
 // 登陆
 export function checkLogin(data: ICheckLoginRequest) {
-  return AppPost<ICheckLoginResponse>('/checkLogin', data);
+  return AppPost<ICheckLoginResponse>('/client/login', data);
 }
 
 // 根据token获取用户信息
