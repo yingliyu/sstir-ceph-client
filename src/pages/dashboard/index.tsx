@@ -1,8 +1,8 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form, message } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
 import { bucketApi } from '@/services';
-import { IBucketsResponse,ICreateBucketRqt } from '@/services/bucket/types';
+import { IBucketsResponse, ICreateBucketRqt } from '@/services/bucket/types';
 import css from './index.module.less';
 const data: any[] = [];
 for (let i = 0; i < 46; i++) {
@@ -23,23 +23,23 @@ const Dashboard = () => {
   useEffect(() => {
     getBucketLists();
   }, []);
-  let clickFlag = true // 交互锁
+  let clickFlag = true; // 交互锁
   const getBucketLists = async () => {
-    if(!clickFlag) return
-    clickFlag = false
+    if (!clickFlag) return;
+    clickFlag = false;
     try {
-      const res:IBucketsResponse[] = await bucketApi.getBuckets();
+      const res: IBucketsResponse[] = await bucketApi.getBuckets();
       const list: any = res.map((item: IBucketsResponse) => ({
-        key:  item.name,
+        key: item.name,
         name: item.name,
         creationDate: item.creationDate,
         owner: item.owner.displayName
       }));
       setBucketLists(list);
-      clickFlag = true
+      clickFlag = true;
     } catch (error) {
-      message.error(error)
-      clickFlag = true
+      message.error(error);
+      clickFlag = true;
     }
   };
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -110,45 +110,47 @@ const Dashboard = () => {
   const showCreateModal = () => {
     setVisible(true);
   };
-// 创建存储桶
-  const createBucket = async (val:ICreateBucketRqt)=>{
+  // 创建存储桶
+  const createBucket = async (val: ICreateBucketRqt) => {
     try {
       setConfirmLoading(true);
-      await bucketApi.addBucket(val)
+      await bucketApi.addBucket(val);
       setVisible(false);
       setConfirmLoading(false);
-      message.success('创建成功',1.5)
-      getBucketLists()
+      message.success('创建成功', 1.5);
+      getBucketLists();
       form.resetFields(); // 表单重置
     } catch (error) {
-      message.error(error)
+      message.error(error);
       setConfirmLoading(false);
     }
-  }
+  };
 
-  const deleteBucket = async (val:ICreateBucketRqt)=>{
+  const deleteBucket = async (val: ICreateBucketRqt) => {
     try {
-      await bucketApi.deleteBucket(val)
-      message.success('删除成功',1.5)
-      getBucketLists()
+      await bucketApi.deleteBucket(val);
+      message.success('删除成功', 1.5);
+      getBucketLists();
     } catch (error) {
-      message.error(error)
+      message.error(error);
     }
-  }
+  };
   const handleCreateOk = () => {
-    form.validateFields(['bucketName']).then((val:ICreateBucketRqt|any)=>{
-      createBucket(val)
-    }).catch(e=>{
-      console.log(e.errorFields[0].errors[0]);
-    })
-   
+    form
+      .validateFields(['bucketName'])
+      .then((val: ICreateBucketRqt | any) => {
+        createBucket(val);
+      })
+      .catch((e) => {
+        console.log(e.errorFields[0].errors[0]);
+      });
   };
 
   const handleCreateCancel = () => {
     console.log('Clicked cancel button');
     setVisible(false);
   };
-  
+
   return (
     <div className={css['bucket-wrapper']}>
       <p className={css['bucket-tips']}>
@@ -168,7 +170,7 @@ const Dashboard = () => {
           删除
         </Button>
         <Tooltip title="refresh">
-          <Button icon={<RetweetOutlined />} onClick={()=>getBucketLists()} />
+          <Button icon={<RetweetOutlined />} onClick={() => getBucketLists()} />
         </Tooltip>
         <Input.Search placeholder="input search text" onSearch={onSearch} enterButton />
       </Space>
@@ -197,7 +199,7 @@ const Dashboard = () => {
         confirmLoading={confirmLoading}
         onCancel={handleCreateCancel}
       >
-        <Form form={form} name="dynamic_rule" >
+        <Form form={form} name="dynamic_rule">
           <Form.Item
             {...formItemLayout}
             name="bucketName"
@@ -208,18 +210,18 @@ const Dashboard = () => {
                 message: '请输入存储桶名称'
               },
               {
-                pattern:/^[a-z0-9]\d{3,63}|\-/g,
-                message: '存储桶名称必须是小写字母、数字或“-”，并以小写字母开头;',
+                pattern: /^[a-z0-9]\d{3,63}|\-/g,
+                message: '存储桶名称必须是小写字母、数字或“-”，并以小写字母开头;'
               },
               {
                 max: 63,
                 min: 3,
                 message: '存储桶名称在3到63个字符之间;'
-               },
-               {
-                whitespace:true,
+              },
+              {
+                whitespace: true,
                 message: '不能输入空格;'
-               }
+              }
             ]}
           >
             <Input placeholder="请输入存储桶名称" />

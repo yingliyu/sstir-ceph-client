@@ -4,8 +4,8 @@ export interface IBucketsResponse {
   creationDate: string;
 }
 
-export interface ICreateBucketRqt{
-  bucketName:string
+export interface ICreateBucketRqt {
+  bucketName: string;
 }
 
 export interface IGetUserInfoResponse {

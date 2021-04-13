@@ -17,7 +17,7 @@ const formItemLayout = {
   wrapperCol: { span: 16 }
 };
 
-const Bucket =()=> {
+const Bucket = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
@@ -114,7 +114,6 @@ const Bucket =()=> {
     form.validateFields(['nickname']);
   }, []);
 
- 
   return (
     <div className={css['bucket-wrapper']}>
       <Space className={css['form-wrapper']}>
@@ -178,6 +177,6 @@ const Bucket =()=> {
       </Modal>
     </div>
   );
-}
+};
 
 export default Bucket;

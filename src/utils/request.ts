@@ -89,7 +89,6 @@ export function AppPut<T>(url: string, data?: any) {
   });
 }
 
-
 export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {
     instance
