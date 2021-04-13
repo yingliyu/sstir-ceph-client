@@ -4,6 +4,10 @@ export interface IBucketsResponse {
   creationDate: string;
 }
 
+export interface ICreateBucketRqt{
+  bucketName:string
+}
+
 export interface IGetUserInfoResponse {
   username: string;
   age: number;

@@ -1,7 +1,23 @@
 import instance from './axios';
 import qs from 'qs';
 
-// GET请求
+export function AppPost<T>(url: string, data?: any) {
+  return new Promise<T>((resolve, reject) => {
+    instance
+      .post(url, data)
+      .then((res) => {
+        if (res.data.code === 200) {
+          resolve(res.data.data as T);
+        } else {
+          reject(res.data.msg);
+        }
+      })
+      .catch((err) => {
+        reject(err.toString());
+      });
+  });
+}
+
 export function AppGet<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
@@ -28,67 +44,6 @@ export function AppGet<T>(url: string, data?: any) {
       });
   });
 }
-export function AppDelete<T>(url: string, data?: any) {
-  return new Promise<T>((resolve, reject) => {
-    instance
-      .delete(url, {
-        params: {
-          ...data
-        },
-        paramsSerializer: (params) => {
-          return qs.stringify(params, { indices: false });
-        }
-      })
-      .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
-        }
-      })
-      .catch((err) => {
-        // if (err.toString() === 'Error: Request failed with status code 400') {
-        //   window.location.href = '/pub/403';
-        // }
-        reject(err.toString());
-      });
-  });
-}
-// POST请求
-export function AppPost<T>(url: string, data?: any) {
-  return new Promise<T>((resolve, reject) => {
-    instance
-      .post(url, data)
-      .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
-        }
-      })
-      .catch((err) => {
-        reject(err.toString());
-      });
-  });
-}
-
-export function AppPut<T>(url: string, data?: any) {
-  return new Promise<T>((resolve, reject) => {
-    instance
-      .put(url, data)
-      .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
-        }
-      })
-      .catch((err) => {
-        reject(err.toString());
-      });
-  });
-}
-
 
 export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Tooltip, Modal, Form } from 'antd';
+import { Table, Button, Space, Input, Tooltip, Modal, Form, message } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
 import css from './index.module.less';
 
@@ -17,7 +17,7 @@ const formItemLayout = {
   wrapperCol: { span: 16 }
 };
 
-function Bucket() {
+const Bucket =()=> {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
@@ -114,6 +114,7 @@ function Bucket() {
     form.validateFields(['nickname']);
   }, []);
 
+ 
   return (
     <div className={css['bucket-wrapper']}>
       <Space className={css['form-wrapper']}>
