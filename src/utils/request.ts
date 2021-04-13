@@ -1,7 +1,6 @@
 import instance from './axios';
 import qs from 'qs';
 
-
 export function AppPost<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance

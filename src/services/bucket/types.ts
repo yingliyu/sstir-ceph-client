@@ -1,8 +1,7 @@
-
 export interface IBucketsResponse {
-  name:string
-  owner:{"displayName":string,"id":string}
-  creationDate:string
+  name: string;
+  owner: { displayName: string; id: string };
+  creationDate: string;
 }
 
 export interface IGetUserInfoResponse {

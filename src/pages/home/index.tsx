@@ -48,7 +48,7 @@ const Home = (props: any) => {
   const onFinish = (values: any) => {
     console.log('Success:', values);
     // dispatch(checkLogin({ accessKey: 'KZSD2SLM3QJ5TJD8KCHZ', secretKey: '0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej' }));
-     dispatch(checkLogin(values));
+    dispatch(checkLogin(values));
   };
 
   const onFinishFailed = (errorInfo: any) => {
@@ -69,7 +69,10 @@ const Home = (props: any) => {
           {...layout}
           form={form}
           name="basic"
-          initialValues={{ accessKey: 'KZSD2SLM3QJ5TJD8KCHZ' ,secretKey:'0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej'}}
+          initialValues={{
+            accessKey: 'KZSD2SLM3QJ5TJD8KCHZ',
+            secretKey: '0tAwZ2Jld5mxTyZ3Xk0uysDDlBhuKA8BdyVoIAej'
+          }}
           onFinish={onFinish}
           onFinishFailed={onFinishFailed}
         >
@@ -85,7 +88,7 @@ const Home = (props: any) => {
             name="secretKey"
             rules={[{ required: true, message: '请输入Secret Key!' }]}
           >
-            <Input.Password placeholder="Secret Key"  />
+            <Input.Password placeholder="Secret Key" />
           </Form.Item>
 
           <Form.Item {...tailLayout}>

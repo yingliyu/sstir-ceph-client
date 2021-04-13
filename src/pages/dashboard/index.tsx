@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
-import {bucketApi} from '@/services'
-import {IBucketsResponse} from '@/services/bucket/types'
+import { bucketApi } from '@/services';
+import { IBucketsResponse } from '@/services/bucket/types';
 import css from './index.module.less';
 
 const data: any[] = [];
@@ -19,26 +19,24 @@ const formItemLayout = {
   wrapperCol: { span: 16 }
 };
 
-const Dashboard = ()=> {
-  const [bucketList,setBucketLists] = useState<IBucketsResponse[]>([])
-  useEffect(()=>{
-    getBucketLists()
-  },[])
-  const getBucketLists= async()=>{
+const Dashboard = () => {
+  const [bucketList, setBucketLists] = useState<IBucketsResponse[]>([]);
+  useEffect(() => {
+    getBucketLists();
+  }, []);
+  const getBucketLists = async () => {
     try {
-      const res = await bucketApi.getBuckets()
-      const list:any = res.map((item:IBucketsResponse,index:number)=>({
-        key:index+"_"+item.name.toString(),
-        name:item.name,
-        creationDate:item.creationDate,
-        owner:item.owner.displayName
-      }))
+      const res = await bucketApi.getBuckets();
+      const list: any = res.map((item: IBucketsResponse, index: number) => ({
+        key: index + '_' + item.name.toString(),
+        name: item.name,
+        creationDate: item.creationDate,
+        owner: item.owner.displayName
+      }));
       console.log(res);
-      setBucketLists(list)
-    } catch (error) {
-      
-    }
-  }
+      setBucketLists(list);
+    } catch (error) {}
+  };
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
@@ -192,6 +190,6 @@ const Dashboard = ()=> {
       </Modal>
     </div>
   );
-}
+};
 
 export default Dashboard;
