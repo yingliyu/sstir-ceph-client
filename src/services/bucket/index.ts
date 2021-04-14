@@ -1,6 +1,6 @@
 import { AppPost, AppGet, AppPut, AppDelete } from '@/utils/request';
 
-import { IBucketsResponse, ICreateBucketRqt, IGetUserInfoResponse } from './types';
+import { IBucketsResponse, ICreateBucketRqt, IDelBucketRqt,IGetUserInfoResponse } from './types';
 
 // 获取存储桶列表
 export function getBuckets() {
@@ -13,6 +13,11 @@ export function addBucket(param: ICreateBucketRqt) {
 }
 
 // 删除存储桶
-export function deleteBucket(param: ICreateBucketRqt) {
-  return AppDelete<IGetUserInfoResponse>(`/client/bucket/${param.bucketName}`, param);
+export function deleteBuckets(param: IDelBucketRqt) {
+  return AppDelete<IGetUserInfoResponse>(`/client/bucket`, param);
+}
+
+// 获取存储桶详情
+export function getFilesInBucket(param:ICreateBucketRqt) {
+  return AppGet<any>(`/client/bucket/${param.bucketName}`, param);
 }

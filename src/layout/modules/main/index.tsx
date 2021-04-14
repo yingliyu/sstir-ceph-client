@@ -47,7 +47,7 @@ const LayoutMain: FC = (props: any) => {
             }
           });
       }
-      const bucketName = '/admin/dashboard/:file';
+      const bucketName = '/admin/dashboard/:bucketName';
       if (pathname.includes('dashboard') && item.path === bucketName) {
         const text = pathname.split('/')[3];
         arr.push({

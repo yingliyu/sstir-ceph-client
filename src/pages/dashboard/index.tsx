@@ -2,24 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form, message } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
 import { bucketApi } from '@/services';
-import { IBucketsResponse, ICreateBucketRqt } from '@/services/bucket/types';
+import { IBucketsResponse ,IBucketInfo, ICreateBucketRqt } from '@/services/bucket/types';
 import css from './index.module.less';
-const data: any[] = [];
-for (let i = 0; i < 46; i++) {
-  data.push({
-    key: i,
-    name: `EdwardKing${i}`,
-    age: 32,
-    address: `2021-03-${i}2`
-  });
-}
+
 const formItemLayout = {
   labelCol: { span: 6 },
   wrapperCol: { span: 16 }
 };
 
 const Dashboard = () => {
-  const [bucketList, setBucketLists] = useState([]);
+
+  const [bucketList, setBucketLists] = useState<IBucketInfo[]>([]);
+  const [currentPage,setCurrentPage] = useState<number>(1)
+  const [pageSize,setPageSize] = useState<number>(10)
+  const [currentPageList,setCurrentPageList] = useState<IBucketInfo[]>([])
+
   useEffect(() => {
     getBucketLists();
   }, []);
@@ -36,6 +33,7 @@ const Dashboard = () => {
         owner: item.owner.displayName
       }));
       setBucketLists(list);
+      setCurrentPageList(list.slice(0,currentPage*pageSize))
       clickFlag = true;
     } catch (error) {
       message.error(error);
@@ -53,12 +51,15 @@ const Dashboard = () => {
   };
   const onSearch = (value: string) => console.log(value);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [currentSelBucketName, setCurrentSelBucketName] = useState<string>();
 
-  const showModal = () => {
+  const showModal = (val?:string) => {
+    setCurrentSelBucketName(val)
     setIsModalVisible(true);
   };
 
-  const handleOk = () => {
+  const delHandleOk = () => {
+    currentSelBucketName?deleteBuckets([currentSelBucketName]):deleteBuckets(selectedRowKeys)
     setIsModalVisible(false);
   };
 
@@ -70,7 +71,7 @@ const Dashboard = () => {
     {
       title: '名称',
       dataIndex: 'name',
-      sorter: true, // 服务端排序
+      sorter: (a:any, b:any) => a.name.localeCompare(b.name),
       render: (text: string) => <a href={`/admin/dashboard/${text}`}>{text}</a>
     },
     // {
@@ -80,12 +81,12 @@ const Dashboard = () => {
     {
       title: '创建时间',
       dataIndex: 'creationDate',
-      sorter: true
+      sorter: (a:any, b:any) => a.creationDate.localeCompare(b.creationDate)
     },
     {
       title: '所有者',
-      dataIndex: 'creationDate',
-      sorter: true
+      dataIndex: 'owner',
+      sorter: (a:any, b:any) => a.owner.localeCompare(b.owner)
     },
     // {
     //   title: '锁定状态',
@@ -95,11 +96,12 @@ const Dashboard = () => {
       title: '操作',
       dataIndex: '',
       key: 'x',
-      render: () => (
-        <a onClick={showModal} style={{ fontSize: '14px', color: 'red' }}>
-          删除{/* <CloseCircleOutlined /> */}
-        </a>
-      )
+      render: (text:any, record:IBucketInfo, index:number) => {
+        return <a onClick={()=>showModal(record.name)} style={{ fontSize: '14px', color: 'red' }}>
+        删除
+        {/* <CloseCircleOutlined /> */}
+      </a>
+      }
     }
   ];
   const [visible, setVisible] = useState(false);
@@ -126,9 +128,10 @@ const Dashboard = () => {
     }
   };
 
-  const deleteBucket = async (val: ICreateBucketRqt) => {
+  const deleteBuckets = async (val: string[]) => {
     try {
-      await bucketApi.deleteBucket(val);
+      await bucketApi.deleteBuckets({bucketNames:val});
+      setCurrentSelBucketName('')
       message.success('删除成功', 1.5);
       getBucketLists();
     } catch (error) {
@@ -150,7 +153,17 @@ const Dashboard = () => {
     console.log('Clicked cancel button');
     setVisible(false);
   };
+  // 表格前端分页
+  const changePageNum = (page:number)=>{
+    console.log(page);
+    setCurrentPage(page)
+    setCurrentPageList(bucketList.slice(pageSize*(page-1),currentPage*pageSize))
 
+  }
+  const changePageSize = (current:number,size:number)=>{
+    // console.log(current,size);
+    setPageSize(size)
+  }
   return (
     <div className={css['bucket-wrapper']}>
       <p className={css['bucket-tips']}>
@@ -165,7 +178,7 @@ const Dashboard = () => {
           disabled={selectedRowKeys.length ? false : true}
           danger
           icon={<CloseCircleOutlined />}
-          onClick={showModal}
+          onClick={()=>showModal()}
         >
           删除
         </Button>
@@ -182,13 +195,14 @@ const Dashboard = () => {
         pagination={{
           position: ['topRight'],
           showSizeChanger: true,
-          total: 40,
-          current: 1,
-          pageSize: 10
-          // onChange: null
+          total: bucketList.length,
+          current: currentPage,
+          pageSize: pageSize,
+          onChange: changePageNum,
+          onShowSizeChange:changePageSize
         }}
       />
-      <Modal title="提示" visible={isModalVisible} onOk={handleOk} onCancel={handleCancel}>
+      <Modal title="提示" visible={isModalVisible} onOk={delHandleOk} onCancel={handleCancel}>
         <p>删除存储桶后无法恢复，您确定删除吗？</p>
       </Modal>
       <Modal
@@ -210,7 +224,7 @@ const Dashboard = () => {
                 message: '请输入存储桶名称'
               },
               {
-                pattern: /^[a-z0-9]\d{3,63}|\-/g,
+                pattern: /^[0-9a-z]{1}[0-9a-z-]{1,61}[0-9a-z]{1}$/,
                 message: '存储桶名称必须是小写字母、数字或“-”，并以小写字母开头;'
               },
               {

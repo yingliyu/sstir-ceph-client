@@ -1,5 +1,6 @@
 import instance from './axios';
 import qs from 'qs';
+import { message } from 'antd';
 
 // GET请求
 export function AppGet<T>(url: string, data?: any) {
@@ -14,10 +15,13 @@ export function AppGet<T>(url: string, data?: any) {
         }
       })
       .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
+        const {code,data,msg} = res.data
+        if (code === 200) {
+          resolve(data as T);
+        }else if(code===401){
+          message.warning('您还没有登录，请登陆后重试！')
+        }  else {
+          reject(msg);
         }
       })
       .catch((err) => {
@@ -28,11 +32,12 @@ export function AppGet<T>(url: string, data?: any) {
       });
   });
 }
+// DELETE
 export function AppDelete<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
       .delete(url, {
-        params: {
+        data: {
           ...data
         },
         paramsSerializer: (params) => {
@@ -40,10 +45,13 @@ export function AppDelete<T>(url: string, data?: any) {
         }
       })
       .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
+        const {code,data,msg} = res.data
+        if (code === 200) {
+          resolve(data as T);
+        }else if(code===401){
+          message.warning('您还没有登录，请登陆后重试！')
+        }  else {
+          reject(msg);
         }
       })
       .catch((err) => {
@@ -60,10 +68,13 @@ export function AppPost<T>(url: string, data?: any) {
     instance
       .post(url, data)
       .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
-        } else {
-          reject(res.data.msg);
+        const {code,data,msg} = res.data
+        if (code === 200) {
+          resolve(data as T);
+        }else if(code===401){
+          message.warning('您还没有登录，请登陆后重试！')
+        }  else {
+          reject(msg);
         }
       })
       .catch((err) => {
@@ -77,10 +88,13 @@ export function AppPut<T>(url: string, data?: any) {
     instance
       .put(url, data)
       .then((res) => {
-        if (res.data.code === 200) {
-          resolve(res.data.data as T);
+        const {code,data,msg} = res.data
+        if (code === 200) {
+          resolve(data as T);
+        }else if(code===401){
+          message.warning('您还没有登录，请登陆后重试！')
         } else {
-          reject(res.data.msg);
+          reject(msg);
         }
       })
       .catch((err) => {

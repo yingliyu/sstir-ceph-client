@@ -42,7 +42,7 @@ const routerMain = [
     noMenu: false
   },
   {
-    path: '/admin/dashboard/:file',
+    path: '/admin/dashboard/:bucketName',
     name: '文件列表',
     component: Bucket,
     exact: true,
