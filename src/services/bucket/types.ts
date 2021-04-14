@@ -4,16 +4,16 @@ export interface IBucketsResponse {
   creationDate: string;
 }
 export interface IBucketInfo {
-  key:string
-  name: string
-  creationDate: string
-  owner:string
+  key: string;
+  name: string;
+  creationDate: string;
+  owner: string;
 }
 export interface ICreateBucketRqt {
   bucketName: string;
 }
 
-export interface IDelBucketRqt{
+export interface IDelBucketRqt {
   bucketNames: string[];
 }
 

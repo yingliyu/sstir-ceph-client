@@ -15,12 +15,12 @@ export function AppGet<T>(url: string, data?: any) {
         }
       })
       .then((res) => {
-        const {code,data,msg} = res.data
+        const { code, data, msg } = res.data;
         if (code === 200) {
           resolve(data as T);
-        }else if(code===401){
-          message.warning('您还没有登录，请登陆后重试！')
-        }  else {
+        } else if (code === 401) {
+          message.warning('您还没有登录，请登陆后重试！');
+        } else {
           reject(msg);
         }
       })
@@ -45,12 +45,12 @@ export function AppDelete<T>(url: string, data?: any) {
         }
       })
       .then((res) => {
-        const {code,data,msg} = res.data
+        const { code, data, msg } = res.data;
         if (code === 200) {
           resolve(data as T);
-        }else if(code===401){
-          message.warning('您还没有登录，请登陆后重试！')
-        }  else {
+        } else if (code === 401) {
+          message.warning('您还没有登录，请登陆后重试！');
+        } else {
           reject(msg);
         }
       })
@@ -68,12 +68,12 @@ export function AppPost<T>(url: string, data?: any) {
     instance
       .post(url, data)
       .then((res) => {
-        const {code,data,msg} = res.data
+        const { code, data, msg } = res.data;
         if (code === 200) {
           resolve(data as T);
-        }else if(code===401){
-          message.warning('您还没有登录，请登陆后重试！')
-        }  else {
+        } else if (code === 401) {
+          message.warning('您还没有登录，请登陆后重试！');
+        } else {
           reject(msg);
         }
       })
@@ -88,11 +88,11 @@ export function AppPut<T>(url: string, data?: any) {
     instance
       .put(url, data)
       .then((res) => {
-        const {code,data,msg} = res.data
+        const { code, data, msg } = res.data;
         if (code === 200) {
           resolve(data as T);
-        }else if(code===401){
-          message.warning('您还没有登录，请登陆后重试！')
+        } else if (code === 401) {
+          message.warning('您还没有登录，请登陆后重试！');
         } else {
           reject(msg);
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form, message } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
-import {bucketApi} from '@/services'
+import { bucketApi } from '@/services';
 import css from './index.module.less';
 
 const data: any[] = [];
@@ -18,25 +18,22 @@ const formItemLayout = {
   wrapperCol: { span: 16 }
 };
 
-const Bucket = (props:any) => {
-
-  const [curBucketName,setCurBucketName]=useState<string>()
-  const [fileLists,setFileLists] = useState([])
-  useEffect(()=>{
-    setCurBucketName(props.match.params.bucketName)
-    getFilesInBucket()
-  },[])
-  const getFilesInBucket = async()=>{
+const Bucket = (props: any) => {
+  const [curBucketName, setCurBucketName] = useState<string>();
+  const [fileLists, setFileLists] = useState([]);
+  useEffect(() => {
+    setCurBucketName(props.match.params.bucketName);
+    getFilesInBucket();
+  }, []);
+  const getFilesInBucket = async () => {
     try {
       const param = {
-        bucketName:curBucketName!
-      }
-      const res = await bucketApi.getFilesInBucket(param)
+        bucketName: curBucketName!
+      };
+      const res = await bucketApi.getFilesInBucket(param);
       console.log(res);
-    } catch (error) {
-      
-    }
-  }
+    } catch (error) {}
+  };
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);

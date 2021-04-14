@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Space, Input, Tooltip, Modal, Form, message } from 'antd';
 import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined } from '@ant-design/icons';
 import { bucketApi } from '@/services';
-import { IBucketsResponse ,IBucketInfo, ICreateBucketRqt } from '@/services/bucket/types';
+import { IBucketsResponse, IBucketInfo, ICreateBucketRqt } from '@/services/bucket/types';
 import css from './index.module.less';
 
 const formItemLayout = {
@@ -11,11 +11,10 @@ const formItemLayout = {
 };
 
 const Dashboard = () => {
-
   const [bucketList, setBucketLists] = useState<IBucketInfo[]>([]);
-  const [currentPage,setCurrentPage] = useState<number>(1)
-  const [pageSize,setPageSize] = useState<number>(10)
-  const [currentPageList,setCurrentPageList] = useState<IBucketInfo[]>([])
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPageList, setCurrentPageList] = useState<IBucketInfo[]>([]);
 
   useEffect(() => {
     getBucketLists();
@@ -33,7 +32,7 @@ const Dashboard = () => {
         owner: item.owner.displayName
       }));
       setBucketLists(list);
-      setCurrentPageList(list.slice(0,currentPage*pageSize))
+      setCurrentPageList(list.slice(0, currentPage * pageSize));
       clickFlag = true;
     } catch (error) {
       message.error(error);
@@ -53,13 +52,13 @@ const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentSelBucketName, setCurrentSelBucketName] = useState<string>();
 
-  const showModal = (val?:string) => {
-    setCurrentSelBucketName(val)
+  const showModal = (val?: string) => {
+    setCurrentSelBucketName(val);
     setIsModalVisible(true);
   };
 
   const delHandleOk = () => {
-    currentSelBucketName?deleteBuckets([currentSelBucketName]):deleteBuckets(selectedRowKeys)
+    currentSelBucketName ? deleteBuckets([currentSelBucketName]) : deleteBuckets(selectedRowKeys);
     setIsModalVisible(false);
   };
 
@@ -71,7 +70,7 @@ const Dashboard = () => {
     {
       title: '名称',
       dataIndex: 'name',
-      sorter: (a:any, b:any) => a.name.localeCompare(b.name),
+      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
       render: (text: string) => <a href={`/admin/dashboard/${text}`}>{text}</a>
     },
     // {
@@ -81,12 +80,12 @@ const Dashboard = () => {
     {
       title: '创建时间',
       dataIndex: 'creationDate',
-      sorter: (a:any, b:any) => a.creationDate.localeCompare(b.creationDate)
+      sorter: (a: any, b: any) => a.creationDate.localeCompare(b.creationDate)
     },
     {
       title: '所有者',
       dataIndex: 'owner',
-      sorter: (a:any, b:any) => a.owner.localeCompare(b.owner)
+      sorter: (a: any, b: any) => a.owner.localeCompare(b.owner)
     },
     // {
     //   title: '锁定状态',
@@ -96,11 +95,13 @@ const Dashboard = () => {
       title: '操作',
       dataIndex: '',
       key: 'x',
-      render: (text:any, record:IBucketInfo, index:number) => {
-        return <a onClick={()=>showModal(record.name)} style={{ fontSize: '14px', color: 'red' }}>
-        删除
-        {/* <CloseCircleOutlined /> */}
-      </a>
+      render: (text: any, record: IBucketInfo, index: number) => {
+        return (
+          <a onClick={() => showModal(record.name)} style={{ fontSize: '14px', color: 'red' }}>
+            删除
+            {/* <CloseCircleOutlined /> */}
+          </a>
+        );
       }
     }
   ];
@@ -130,8 +131,8 @@ const Dashboard = () => {
 
   const deleteBuckets = async (val: string[]) => {
     try {
-      await bucketApi.deleteBuckets({bucketNames:val});
-      setCurrentSelBucketName('')
+      await bucketApi.deleteBuckets({ bucketNames: val });
+      setCurrentSelBucketName('');
       message.success('删除成功', 1.5);
       getBucketLists();
     } catch (error) {
@@ -154,16 +155,15 @@ const Dashboard = () => {
     setVisible(false);
   };
   // 表格前端分页
-  const changePageNum = (page:number)=>{
+  const changePageNum = (page: number) => {
     console.log(page);
-    setCurrentPage(page)
-    setCurrentPageList(bucketList.slice(pageSize*(page-1),currentPage*pageSize))
-
-  }
-  const changePageSize = (current:number,size:number)=>{
+    setCurrentPage(page);
+    setCurrentPageList(bucketList.slice(pageSize * (page - 1), currentPage * pageSize));
+  };
+  const changePageSize = (current: number, size: number) => {
     // console.log(current,size);
-    setPageSize(size)
-  }
+    setPageSize(size);
+  };
   return (
     <div className={css['bucket-wrapper']}>
       <p className={css['bucket-tips']}>
@@ -178,7 +178,7 @@ const Dashboard = () => {
           disabled={selectedRowKeys.length ? false : true}
           danger
           icon={<CloseCircleOutlined />}
-          onClick={()=>showModal()}
+          onClick={() => showModal()}
         >
           删除
         </Button>
@@ -199,7 +199,7 @@ const Dashboard = () => {
           current: currentPage,
           pageSize: pageSize,
           onChange: changePageNum,
-          onShowSizeChange:changePageSize
+          onShowSizeChange: changePageSize
         }}
       />
       <Modal title="提示" visible={isModalVisible} onOk={delHandleOk} onCancel={handleCancel}>
