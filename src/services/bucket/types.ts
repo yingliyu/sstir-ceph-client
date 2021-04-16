@@ -1,14 +1,12 @@
 export interface IBucketsResponse {
-  name: string;
-  owner: { displayName: string; id: string };
-  creationDate: string;
-}
-export interface IBucketInfo {
-  key: string;
-  name: string;
-  creationDate: string;
+  bucketName: string;
+  createTime: string;
   owner: string;
 }
+export interface IBucketInfo extends IBucketsResponse{
+  key: string;
+}
+
 export interface ICreateBucketRqt {
   bucketName: string;
 }

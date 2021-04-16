@@ -5,22 +5,22 @@ const getUrl = () => {
     case 'dev':
       return {
         baseUrl: 'http://10.12.0.123:9009',
-        uploadUrl: 'http://rap2api.taobao.org/app/mock/249164'
+        uploadUrl: 'http://10.12.0.149:9000'
       };
     case 'qa':
       return {
         baseUrl: 'http://10.12.0.123:9009',
-        uploadUrl: 'http://rap2api.taobao.org/app/mock/249164'
+        uploadUrl: 'http://10.12.0.149:9000'
       };
     case 'prod':
       return {
         baseUrl: 'http://10.12.0.123:9009',
-        uploadUrl: 'http://rap2api.taobao.org/app/mock/249164'
+        uploadUrl: 'http://10.12.0.149:9000'
       };
     default:
       return {
         baseUrl: 'http://10.12.0.123:9009',
-        uploadUrl: 'http://rap2api.taobao.org/app/mock/249164'
+        uploadUrl: 'http://10.12.0.149:9000'
       };
   }
 };

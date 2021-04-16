@@ -1,6 +1,7 @@
 import instance from './axios';
 import qs from 'qs';
 import { message } from 'antd';
+import appConfig from '@/config';
 
 // GET请求
 export function AppGet<T>(url: string, data?: any) {
@@ -107,6 +108,7 @@ export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {
     instance
       .post(url, data, {
+        baseURL:appConfig.uploadUrl,
         headers: 'multipart/form-data'
       })
       .then((res) => {

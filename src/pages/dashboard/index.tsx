@@ -14,7 +14,6 @@ const Dashboard = () => {
   const [bucketList, setBucketLists] = useState<IBucketInfo[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
-  const [currentPageList, setCurrentPageList] = useState<IBucketInfo[]>([]);
 
   useEffect(() => {
     getBucketLists();
@@ -25,14 +24,13 @@ const Dashboard = () => {
     clickFlag = false;
     try {
       const res: IBucketsResponse[] = await bucketApi.getBuckets();
-      const list: any = res.map((item: IBucketsResponse) => ({
-        key: item.name,
-        name: item.name,
-        creationDate: item.creationDate,
-        owner: item.owner.displayName
+      const list: IBucketInfo[] = res.map((item: IBucketsResponse) => ({
+        key: item.bucketName,
+        bucketName: item.bucketName,
+        createTime: item.createTime,
+        owner: item.owner
       }));
       setBucketLists(list);
-      setCurrentPageList(list.slice(0, currentPage * pageSize));
       clickFlag = true;
     } catch (error) {
       message.error(error);
@@ -69,8 +67,8 @@ const Dashboard = () => {
   const columns = [
     {
       title: '名称',
-      dataIndex: 'name',
-      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
+      dataIndex: 'bucketName',
+      sorter: (a: any, b: any) => a.bucketName.localeCompare(b.bucketName),
       render: (text: string) => <a href={`/admin/dashboard/${text}`}>{text}</a>
     },
     // {
@@ -79,8 +77,8 @@ const Dashboard = () => {
     // },
     {
       title: '创建时间',
-      dataIndex: 'creationDate',
-      sorter: (a: any, b: any) => a.creationDate.localeCompare(b.creationDate)
+      dataIndex: 'createTime',
+      sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime)
     },
     {
       title: '所有者',
@@ -97,7 +95,7 @@ const Dashboard = () => {
       key: 'x',
       render: (text: any, record: IBucketInfo, index: number) => {
         return (
-          <a onClick={() => showModal(record.name)} style={{ fontSize: '14px', color: 'red' }}>
+          <a onClick={() => showModal(record.bucketName)} style={{ fontSize: '14px', color: 'red' }}>
             删除
             {/* <CloseCircleOutlined /> */}
           </a>
@@ -158,7 +156,6 @@ const Dashboard = () => {
   const changePageNum = (page: number) => {
     console.log(page);
     setCurrentPage(page);
-    setCurrentPageList(bucketList.slice(pageSize * (page - 1), currentPage * pageSize));
   };
   const changePageSize = (current: number, size: number) => {
     // console.log(current,size);
@@ -185,7 +182,7 @@ const Dashboard = () => {
         <Tooltip title="refresh">
           <Button icon={<RetweetOutlined />} onClick={() => getBucketLists()} />
         </Tooltip>
-        <Input.Search placeholder="input search text" onSearch={onSearch} enterButton />
+        <Input.Search placeholder="input bucket name" onSearch={onSearch} enterButton />
       </Space>
       <Table
         rowSelection={rowSelection}
