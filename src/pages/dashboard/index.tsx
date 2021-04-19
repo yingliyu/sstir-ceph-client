@@ -95,7 +95,10 @@ const Dashboard = () => {
       key: 'x',
       render: (text: any, record: IBucketInfo, index: number) => {
         return (
-          <a onClick={() => showModal(record.bucketName)} style={{ fontSize: '14px', color: 'red' }}>
+          <a
+            onClick={() => showModal(record.bucketName)}
+            style={{ fontSize: '14px', color: 'red' }}
+          >
             删除
             {/* <CloseCircleOutlined /> */}
           </a>

@@ -1,5 +1,5 @@
-import React from 'react'
+import React from 'react';
 
-const Upload = ()=>{
-  return (<div>upload module...</div>)
-}
+const Upload = () => {
+  return <div>upload module...</div>;
+};

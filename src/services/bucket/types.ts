@@ -3,7 +3,7 @@ export interface IBucketsResponse {
   createTime: string;
   owner: string;
 }
-export interface IBucketInfo extends IBucketsResponse{
+export interface IBucketInfo extends IBucketsResponse {
   key: string;
 }
 

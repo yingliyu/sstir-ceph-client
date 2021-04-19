@@ -1,11 +1,26 @@
-import React, { useState, useEffect ,} from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  useParams
-} from "react-router-dom";
-import { Table, Button, Space,message, Input, Tooltip, Modal, Select, Switch,Steps, Upload } from 'antd';
-import { PlusCircleOutlined, CloseCircleOutlined, RetweetOutlined,UploadOutlined  } from '@ant-design/icons';
+  Table,
+  Button,
+  Space,
+  message,
+  Input,
+  Tooltip,
+  Modal,
+  Select,
+  Switch,
+  Steps,
+  Upload
+} from 'antd';
+import {
+  PlusCircleOutlined,
+  CloseCircleOutlined,
+  RetweetOutlined,
+  UploadOutlined
+} from '@ant-design/icons';
 import { bucketApi } from '@/services';
-import {IUploadRqt} from '@/services/bucket'
+import { IUploadRqt } from '@/services/bucket';
 import SparkMD5 from 'spark-md5';
 import css from './index.module.less';
 
@@ -24,11 +39,10 @@ const formItemLayout = {
 };
 
 const Bucket = (props: any) => {
-
   const [curBucketName, setCurBucketName] = useState<string>();
   const [fileLists, setFileLists] = useState([]);
-  const {bucketName} = useParams<any>()
-  
+  const { bucketName } = useParams<any>();
+
   useEffect(() => {
     setCurBucketName(bucketName);
     getFilesInBucket();
@@ -132,68 +146,31 @@ const Bucket = (props: any) => {
     setVisible(false);
   };
 
-  interface IFileProps extends Blob{
+  interface IFileProps extends Blob {
     lastModified: string;
-    lastModifiedDate:string;
+    lastModifiedDate: string;
     name: string;
-    size: number
+    size: number;
     type: string;
     uid: string;
     webkitRelativePath: string;
   }
- // 文件上传功能
-  const [uploading,setUploading] = useState<boolean>()
-  const [fileList,setFileList] = useState<IFileProps[]>([])
- 
+  // 文件上传功能
+  const [uploading, setUploading] = useState<boolean>();
+  const [fileList, setFileList] = useState<IFileProps[]>([]);
+
   // upload
-  const handleUpload = async() => {
+  const handleUpload = async () => {
     console.log(fileList);
-    // slice start
-    let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
-    file = fileList[0],
-    chunkSize = 2097152,                             // Read in chunks of 2MB
-    chunks = Math.ceil(file.size / chunkSize),
-    currentChunk = 0,
-    spark = new SparkMD5.ArrayBuffer(),
-    fileReader = new FileReader();
-    
-    fileReader.onload = function (e:any) {
-      console.log('read chunk nr', currentChunk + 1, 'of', chunks);
-      spark.append(e.target.result);                   // Append array buffer
-      currentChunk++;
-
-      if (currentChunk < chunks) {
-          loadNext();
-      } else {
-          console.log('finished loading');
-          console.info('computed hash', spark.end());  // Compute hash
-      }
-  };
-
-  fileReader.onerror = function () {
-      console.warn('oops, something went wrong.');
-  };
-
-  function loadNext() {
-      var start = currentChunk * chunkSize,
-          end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
-
-      fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
-  }
-
-  loadNext();
-  // slice end
-  
     const formData = new FormData();
-    fileList.forEach(file => {
+    fileList.forEach((file) => {
       formData.append('files[]', file);
     });
-    setUploading(true)
-    
-    const param:IUploadRqt = {
+    setUploading(true);
+    const param: IUploadRqt = {
       version: '1.0',
       clientType: '1',
-      function: 100,// 100:上传 | 300 获取下载对象信息 | 400:上传进度 | 200:下载
+      function: 100, // 100:上传 | 300 获取下载对象信息 | 400:上传进度 | 200:下载
       fileName: 'string',
       fileSize: 10,
       fileMd5: 'string',
@@ -201,47 +178,110 @@ const Bucket = (props: any) => {
       filePieceNum: 10,
       filePieceData: 'string', // 当前分片数据base64
       filePieceDataLen: 0, // base64 大小
-      fileChunckSize:20, // 分片大小，分片大小不能超过50M，建议值20M
-    }
+      fileChunckSize: 20 // 分片大小，分片大小不能超过50M，建议值20M
+    };
     try {
-      // const res = await bucketApi.uploadFilePiece(param)
-      setUploading(false)
-      setFileList([])
+      const res = await bucketApi.uploadFilePiece(param);
+      console.log(res);
+
+      setUploading(false);
+      setFileList([]);
       message.success('upload successfully.');
     } catch (error) {
       console.log(error);
-      
     }
   };
-  const uploadProps:any = {
-    onRemove: (file:IFileProps) => {
+
+  // 大文件分片
+  const handleFileSlice = (blob: File) => {
+    if (!blob) {
+      message.warning('请选择上传的文件！');
+      return;
+    }
+    // slice start
+    const { name, size } = blob;
+    // let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+    let blobSlice = File.prototype.slice;
+    let file = fileList[0];
+    let chunkSize = 1024 * 1024 * 7; // Read in chunks of 7MB: 1024*1024*7
+    let chunks = Math.ceil(size / chunkSize);
+    let currentChunk = 0;
+    let spark = new SparkMD5.ArrayBuffer();
+    let fileReader = new FileReader();
+
+    fileReader.onload = function (e: any) {
+      console.log('read chunk nr', currentChunk + 1, 'of', chunks);
+      spark.append(e.target.result); // Append array buffer
+      currentChunk++;
+
+      if (currentChunk < chunks) {
+        loadNext();
+      } else {
+        const fileMd5 = spark.end();
+        const param = {
+          version: '1.0',
+          clientType: '1',
+          function: 100,
+          fileName: name,
+          fileSize: size,
+          fileMd5: fileMd5,
+          filePieceMd5: '',
+          filePieceNum: currentChunk,
+          filePieceData: 0, // 当前分片数据base64
+          filePieceDataLen: 0, // base64 大小
+          fileChunckSize: chunkSize // 分片大小，分片大小不能超过50M，建议值20M
+        };
+        console.log('finished loading');
+        console.info('computed hash', spark.end()); // Compute hash
+      }
+     
+    };
+    fileReader.onabort = () => {
+      console.log('fileReader被中断');
+    };
+    fileReader.onerror = function () {
+      console.warn('oops, something went wrong.');
+    };
+
+    function loadNext() {
+      let start = currentChunk * chunkSize;
+      let end = start + chunkSize >= size ? size : start + chunkSize;
+      fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+    }
+
+    loadNext();
+    // slice end
+  };
+
+  const uploadProps: any = {
+    onRemove: (file: IFileProps) => {
       const index = fileList.indexOf(file);
       const newFileList = fileList.slice();
       newFileList.splice(index, 1);
-      setFileList(newFileList)
+      setFileList(newFileList);
     },
-    beforeUpload: (file:IFileProps) => {
-      console.log('beforeUpload===',file);
-      
-      setFileList([...fileList,file])
+    beforeUpload: (file: IFileProps) => {
+      console.log('beforeUpload===', file);
+      setFileList([...fileList, file]);
       return false;
     },
-    fileList,
+    fileList
   };
-  const [curStep, setCurStep] = useState<number>(0)
-  const nextStepHandle = ()=>{
-    setCurStep(curStep<3?curStep+1:3)
-  }
-  const prevStepHandle = ()=>{
-    setCurStep(curStep>0?curStep-1:1)
-  }
+
+  const [curStep, setCurStep] = useState<number>(0);
+  const nextStepHandle = () => {
+    setCurStep(curStep < 3 ? curStep + 1 : 3);
+  };
+  const prevStepHandle = () => {
+    setCurStep(curStep > 0 ? curStep - 1 : 1);
+  };
   // 选中的存储池
-  const [storagePool,setStoragePool]=useState<string>()
-  const onStoragePoolChange = (val:string)=>{
-    setStoragePool(val)
-  }
-  const onBlur = ()=>{}
-  const onFocus = ()=>{}
+  const [storagePool, setStoragePool] = useState<string>();
+  const onStoragePoolChange = (val: string) => {
+    setStoragePool(val);
+  };
+  const onBlur = () => {};
+  const onFocus = () => {};
   return (
     <div className={css['bucket-wrapper']}>
       <Space className={css['form-wrapper']}>
@@ -288,22 +328,22 @@ const Bucket = (props: any) => {
         onCancel={handleCreateCancel}
         footer={null}
       >
-         <Steps size="small" current={curStep}>
-            <Steps.Step title="选择文件" />
-            <Steps.Step title="选择存储池" />
-            <Steps.Step title="加密" />
+        <Steps size="small" current={curStep}>
+          <Steps.Step title="选择文件" />
+          <Steps.Step title="选择存储池" />
+          <Steps.Step title="加密" />
         </Steps>
-       {
-         curStep===0? <div className={css['upload-step']}>
-         <Upload {...uploadProps}>
-          <Button icon={<UploadOutlined />}>添加文件</Button>
-        </Upload>
-        </div>:null
-       }
-        {
-          curStep===1?<div className={css['upload-step']}>
-          <label>存储池：</label>
-          <Select
+        {curStep === 0 ? (
+          <div className={css['upload-step']}>
+            <Upload {...uploadProps}>
+              <Button icon={<UploadOutlined />}>添加文件</Button>
+            </Upload>
+          </div>
+        ) : null}
+        {curStep === 1 ? (
+          <div className={css['upload-step']}>
+            <label>存储池：</label>
+            <Select
               showSearch
               style={{ width: 200 }}
               placeholder="选择一个存储池"
@@ -312,20 +352,21 @@ const Bucket = (props: any) => {
               onFocus={onFocus}
               onBlur={onBlur}
               onSearch={onSearch}
-              filterOption={(input, option:any) =>
+              filterOption={(input, option: any) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
             >
               <Select.Option value="default">default</Select.Option>
             </Select>
-          </div>:null
-        }
-        {curStep===2?<div className={css['upload-step']}>
-          <label>加密：</label>
-          <Switch checked={false}  />
-        </div>
-        :null}
-       <div className={css['upload-btn-group']}>
+          </div>
+        ) : null}
+        {curStep === 2 ? (
+          <div className={css['upload-step']}>
+            <label>加密：</label>
+            <Switch checked={false} />
+          </div>
+        ) : null}
+        <div className={css['upload-btn-group']}>
           <Space>
             <Button
               type="primary"
@@ -335,18 +376,10 @@ const Bucket = (props: any) => {
             >
               {uploading ? 'Uploading' : '上传'}
             </Button>
-            {curStep>0?<Button
-              onClick={prevStepHandle}
-            >
-              上一步
-            </Button>:null}
-            {curStep<2?<Button
-              onClick={nextStepHandle}
-            >
-              下一步
-            </Button>:null}
+            {curStep > 0 ? <Button onClick={prevStepHandle}>上一步</Button> : null}
+            {curStep < 2 ? <Button onClick={nextStepHandle}>下一步</Button> : null}
           </Space>
-       </div>
+        </div>
       </Modal>
     </div>
   );

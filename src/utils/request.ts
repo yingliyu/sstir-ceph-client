@@ -108,7 +108,7 @@ export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {
     instance
       .post(url, data, {
-        baseURL:appConfig.uploadUrl,
+        baseURL: appConfig.uploadUrl,
         headers: 'multipart/form-data'
       })
       .then((res) => {
