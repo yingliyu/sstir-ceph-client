@@ -41,6 +41,7 @@ const formItemLayout = {
 
 const Bucket = (props: any) => {
   const [curBucketName, setCurBucketName] = useState<string>();
+  const [fileLists, setFileLists] = useState([]);
   const { bucketName } = useParams<any>();
 
   useEffect(() => {
@@ -155,179 +156,227 @@ const Bucket = (props: any) => {
     uid: string;
     webkitRelativePath: string;
   }
-  interface IFileItemProps {
-    fileMd5: string; // 取文件uuid
-    fileSize: number;
-    fileName: string;
-    file: File;
-    chunkSize: number; // 分片大小
-    chunks: number; // 总片数
-    filePieceNum: number; // 已上传片数
-    uuid?: string; // 文件id
-    sampleUuid?: string; // 文件所属样本id
-    status?: number; // 当前文件上传状态, -1: error; 0: uploading; 1: finished; 2: paused; 3: waitting;
-    createTime?: Date; // 创建时间
-    succeedTime?: Date; // 成功时间（实则每次上传停止都会更新该时间）
-    retryPiece?: Record<number, number>; // 记录每片重传次数，该片上传失败三次以上则状态变更为上传失败
-    uploadSpeed?: number; // 上传速度，根据已上传文件大小及创建至今持续时间获取
-  }
   // 文件上传功能
   const [uploading, setUploading] = useState<boolean>();
-  const [fileList, setFileList] = useState<File[]>([]);
-  const [fileInfo, setFileInfo] = useState<IFileItemProps & any>();
-  const [chunkInfo, setChunkInfo] = useState<any>();
+  const [fileList, setFileList] = useState<IFileProps[]>([]);
+
   // upload
+  // let blobSlice = File.prototype.slice || File.prototype?.mozSlice || File.prototype?.webkitSlice;
+  let blobSlice = File.prototype.slice;
+  // let blobSlice = File.prototype.slice;
+  // let chunkSize = 1024 * 1024 * 7; // Read in chunks of 7MB: 1024*1024*7
   const handleUpload = async () => {
     console.log(fileList);
-    console.log(fileInfo);
-    md5File(fileList[0]);
-    // continueUpload(fileInfo);
+    console.log(fileList[0]);
+    const file = fileList[0];
+    if (!file) {
+      message.warning('请先选择文件！');
+      return;
+    }
+    let chunkSize = 1024 * 1024 * 25; // Read in chunks of 7MB: 1024*1024*7
+    const blockCount: number = Math.ceil(file.size / chunkSize); // 分片总数
+    const axiosPromiseArray = []; // axiosPromise数组
+    const hash = await handleFileSlice(fileList[0]); // 文件 hash
+    for (let i = 0; i < blockCount; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(file.size, start + chunkSize);
+      // 构建表单
+      // const form: any = new FormData();
+      // form.append('file', blobSlice.call(file, start, end));
+      // form.append('name', file.name);
+      // form.append('total', blockCount);
+      // form.append('index', i);
+      // form.append('size', file.size);
+      // form.append('hash', hash);
+      // ajax提交 分片，此时 content-type 为 multipart/form-data
+      const param: IUploadRqt = {
+        version: '1.0',
+        clientType: '1',
+        function: 100, // 100:上传 | 300 获取下载对象信息 | 400:上传进度 | 200:下载
+        fileName: 'string',
+        fileSize: 10,
+        fileMd5: 'string',
+        filePieceMd5: 'string',
+        filePieceNum: 10,
+        filePieceData: 'string', // 当前分片数据base64
+        filePieceDataLen: 0, // base64 大小
+        fileChunckSize: 20 // 分片大小，分片大小不能超过50M，建议值20M
+      };
+      const axiosOptions = {
+        onUploadProgress: (e: any) => {
+          // 处理上传的进度
+          console.log(blockCount, i, e, file);
+        }
+      };
+      // 加入到 Promise 数组中
+      // axiosPromiseArray.push(bucketApi.uploadFilePiece(param));
+    }
+    // 所有分片上传后，请求合并分片文件
+    // await axios.all(axiosPromiseArray).then(() => {
+    //   // 合并chunks
+    //   const data = {
+    //     size: file.size,
+    //     name: file.name,
+    //     total: blockCount,
+    //     hash
+    //   };
+    // });
+    // const param: IUploadRqt = {
+    //   version: '1.0',
+    //   clientType: '1',
+    //   function: 100, // 100:上传 | 300 获取下载对象信息 | 400:上传进度 | 200:下载
+    //   fileName: 'string',
+    //   fileSize: 10,
+    //   fileMd5: 'string',
+    //   filePieceMd5: 'string',
+    //   filePieceNum: 10,
+    //   filePieceData: 'string', // 当前分片数据base64
+    //   filePieceDataLen: 0, // base64 大小
+    //   fileChunckSize: 20 // 分片大小，分片大小不能超过50M，建议值20M
+    // };
+    // setUploading(true);
+
+    // try {
+    //   const res = await bucketApi.uploadFilePiece(param);
+    //   console.log(res);
+
+    //   setUploading(false);
+    //   setFileList([]);
+    //   message.success('upload successfully.');
+    // } catch (error) {
+    //   console.log(error);
+    // }
   };
-  // 获取文件MD5
-  const md5File = (file: any) => {
+
+  // file slice
+  const handleFileSlice = (blob: any) => {
     return new Promise((resolve, reject) => {
-      let blobSlice =
-        File.prototype.slice ||
-        (File.prototype as any).mozSlice ||
-        (File.prototype as any).webkitSlice;
-      const fileSize = file.size;
-      const fileName = file.name;
-      const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
-      const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
-      let filePieceNum = 0;
+      // slice start
+      const { name, size } = blob;
+      // let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+      // // let blobSlice = File.prototype.slice;
+      let file = fileList[0];
+      let chunkSize = 1024 * 1024 * 25; // Read in chunks of 7MB: 1024*1024*7
+      let chunks = Math.ceil(size / chunkSize); // 获取切片的个数
+      let currentChunk = 0;
       let spark = new SparkMD5.ArrayBuffer();
       let fileReader = new FileReader();
 
       fileReader.onload = function (e: any) {
-        const result = e.target?.result as string;
-        console.log('read chunk nr', filePieceNum + 1, 'of', chunks);
-        spark.append(e.target.result); // Append array buffer
-        filePieceNum++;
+        const result = e.target?.result;
+        spark.append(result); // Append array buffer
+        currentChunk++;
+        // console.log('reading...', currentChunk, fileMd5, filePieceMd5);
+        const base64 = result.split(';base64,')[1];
+        console.log(`第${currentChunk}分片解析完成，开始解析${currentChunk + 1}分片`);
+
+        if (currentChunk < chunks) {
+          loadNext();
+        } else {
+          console.log('finished');
+          const fileMd5 = spark.end();
+
+          console.log('解析完成');
+          console.log(fileMd5);
+          resolve(fileMd5);
+        }
+      };
+      fileReader.onabort = () => {
+        console.log('fileReader被中断');
+      };
+      fileReader.onerror = function () {
+        console.warn('oops, something went wrong.');
+      };
+
+      const loadNext = () => {
+        let start = currentChunk * chunkSize;
+        let end = start + chunkSize >= size ? size : start + chunkSize;
+        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+      };
+
+      loadNext();
+      // slice end
+    }).catch((err) => {
+      console.log(err);
+    });
+  };
+
+  const uploadPieces = (blob:File) => {
+    return new Promise((resolve, reject) => {
+      // slice start
+      const { name, size } = blob;
+      // let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+      // // let blobSlice = File.prototype.slice;
+      let file = fileList[0];
+      let chunkSize = 1024 * 1024 * 25; // Read in chunks of 7MB: 1024*1024*7
+      let chunks = Math.ceil(size / chunkSize); // 获取切片的个数
+      let currentChunk = 0;
+      let spark = new SparkMD5.ArrayBuffer();
+      let fileReader = new FileReader();
+
+      fileReader.onload = function (e: any) {
+        const result = e.target?.result;
+        spark.append(result); // Append array buffer
+        currentChunk++;
         const filePieceSpark = new SparkMD5(); // 文件md5
         filePieceSpark.append(result);
         const filePieceMd5 = filePieceSpark.end();
-
-        const base64 = result?.split(';base64,')[1];
-
-        setChunkInfo({
-          ...chunkInfo,
-          [filePieceNum]: {
-            filePieceMd5,
-            filePieceNum,
-            filePieceData: base64,
-            filePieceDataLen: base64?.length,
-            fileChunckSize: chunkSize
-          }
-        });
-        console.log({
-          ...chunkInfo,
-          [filePieceNum]: {
-            filePieceMd5,
-            filePieceNum,
-            filePieceData: base64,
-            filePieceDataLen: base64?.length,
-            fileChunckSize: chunkSize
-          }
-        });
-
-        if (filePieceNum < chunks) {
+        // console.log('reading...', currentChunk, fileMd5, filePieceMd5);
+        const base64 = result.split(';base64,')[1];
+        console.log(`第${currentChunk}分片解析完成，开始解析${currentChunk + 1}分片`);
+        // const param = {
+        //   version: '1.0',
+        //   clientType: '1',
+        //   function: 100,
+        //   fileName: name,
+        //   fileSize: size,
+        //   fileMd5: fileMd5,
+        //   filePieceMd5: '',
+        //   filePieceNum: currentChunk,
+        //   filePieceData: 0, // 当前分片数据base64
+        //   filePieceDataLen: 0, // base64 大小
+        //   fileChunckSize: chunkSize // 分片大小，分片大小不能超过50M，建议值20M
+        // };
+        if (currentChunk < chunks) {
           loadNext();
         } else {
-          // let cur = +new Date();
-          console.log('finished loading');
-          // alert(spark.end() + '---' + (cur - pre)); // Compute hash
-          let result = spark.end();
-          setFileInfo({ fileMd5: result, ...fileInfo });
-          console.log(result);
-          resolve(result);
+          console.log('finished');
+          const fileMd5 = spark.end();
+
+          console.log('解析完成');
+          console.log(fileMd5);
+          resolve(fileMd5);
         }
       };
-      fileReader.onerror = function (err) {
+      fileReader.onabort = () => {
+        console.log('fileReader被中断');
+      };
+      fileReader.onerror = function () {
         console.warn('oops, something went wrong.');
-        reject(err);
       };
-      function loadNext() {
-        let start = filePieceNum * chunkSize;
-        let end = start + chunkSize >= file.size ? file.size : start + chunkSize;
-        fileReader.readAsDataURL(blobSlice.call(file, start, end));
-      }
+
+      const loadNext = () => {
+        let start = currentChunk * chunkSize;
+        let end = start + chunkSize >= size ? size : start + chunkSize;
+        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+      };
+
       loadNext();
-    });
-  };
-  // 分片上传
-  // const uploadChunk = async (file: any, fileMd5Value: string, chunkList: any[]) => {
-  //   const requestList = [];
-  //   const { fileSize, chunkSize } = file;
-  //   let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
-  //   for (let i = 0; i < chunks; i++) {
-  //     let exit = chunkList.indexOf(i + '') > -1;
-  //     // 如果已经存在, 则不用再上传当前块
-  //     if (!exit) {
-  //       requestList.push(uploadHandle(i, fileMd5Value, file));
-  //     }
-  //   }
-  //   console.log({ requestList });
-  //   const result =
-  //     requestList.length > 0
-  //       ? await Promise.all(requestList)
-  //           .then((result) => {
-  //             console.log({ result });
-  //             return result.every((i) => (i as any).ok);
-  //           })
-  //           .catch((err) => {
-  //             return err;
-  //           })
-  //       : true;
-  //   console.log({ result });
-  //   return result === true;
-  // };
-
-  const uploadHandle = (i: number, filePieceMd5: string, fileInfo: any) => {
-    return new Promise((resolve, reject) => {
-      const { file, fileName, fileSize, chunkSize, fileMd5 } = fileInfo;
-      let end = (i + 1) * chunkSize >= file.size ? file.size : (i + 1) * chunkSize;
-      const param: IUploadRqt = {
-        version: '1.0',
-        clientType: '1',
-        function: 100,
-        fileName: fileName,
-        fileSize,
-        fileMd5,
-        filePieceMd5,
-        filePieceNum: i,
-        // filePieceData: base64, // 当前分片数据base64
-        // filePieceDataLen: base64?.length, // base64 大小
-        fileChunckSize: chunkSize // 分片大小，分片大小不能超过50M，建议值20M
-      };
-      const data = bucketApi.uploadFilePiece(param);
-    });
-  };
-
-  const creatFileInfo = (file: File) => {
-    const currentChunk = 0;
-    const fileSize = file.size;
-    const fileName = file.name;
-    const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
-    const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
-    setFileInfo({
-      file,
-      fileMd5: `${new Date().valueOf()}`,
-      fileName,
-      fileSize,
-      chunkSize,
-      chunks,
-      filePieceNum: currentChunk
+      // slice end
+    }).catch((err) => {
+      console.log(err);
     });
   };
   // 上传组件相关属性
   const uploadProps: any = {
-    onRemove: (file: File) => {
+    onRemove: (file: IFileProps) => {
       const index = fileList.indexOf(file);
       const newFileList = fileList.slice();
       newFileList.splice(index, 1);
       setFileList(newFileList);
     },
-    beforeUpload: (file: File) => {
+    beforeUpload: (file: IFileProps) => {
+      console.log('beforeUpload===', file);
       // 是否重复选择
       const hasFile = fileList.find((item) => item.name === file.name) || '';
       console.log(hasFile);
@@ -339,11 +388,11 @@ const Bucket = (props: any) => {
         message.warning('不支持选多个文件');
         return;
       }
-      creatFileInfo(file);
+      handleFileSlice(file);
       setFileList([...fileList, file]);
       return false;
     },
-    onChange: () => {},
+    onChange:()=>{},
     fileList
   };
 

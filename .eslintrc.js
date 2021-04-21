@@ -18,7 +18,9 @@ module.exports = {
   },
   rules: {
     // 自定义你的规则
-    '@typescript-eslint/no-non-null-asserted-optional-chain': 'off'
+    '@typescript-eslint/no-non-null-asserted-optional-chain': 'off',
+    "no-debugger":process.env!=='dev'?'off':'on',
+    "@typescript-eslint/no-this-alias":['off']
   },
   settings: {
     react: {

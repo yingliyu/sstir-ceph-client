@@ -104,6 +104,27 @@ export function AppPut<T>(url: string, data?: any) {
   });
 }
 
+export function AppFastUpload<T>(url: string, data?: any) {
+  return new Promise<T>((resolve, reject) => {
+    instance
+      .post(url, data, {
+        baseURL: appConfig.uploadUrl
+      })
+      .then((res) => {
+        const { code, data, msg } = res.data;
+        if (code === 200) {
+          resolve(data as T);
+        } else if (code === 401) {
+          message.warning('您还没有登录，请登陆后重试！');
+        } else {
+          reject(msg);
+        }
+      })
+      .catch((err) => {
+        reject(err.toString());
+      });
+  });
+}
 export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {
     instance
