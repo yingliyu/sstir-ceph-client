@@ -59,7 +59,7 @@ export const checkLogin = (data: any): AppThunk => async (dispatch) => {
     dispatch(setToken(token));
     // message.success('登录成功！');
     window.open('/admin/dashboard', '_self');
-  } catch (err){
+  } catch (err) {
     message.error(err);
     console.log(initialState.errMsg, err);
     dispatch(setErrMsg(err || err.toString()));

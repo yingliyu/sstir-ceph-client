@@ -36,14 +36,14 @@ export interface IUploadRqt {
   filePieceDataLen?: number; // base64 大小
   fileChunckSize?: number; // 分片大小，分片大小不能超过50M，建议值20M
 }
-export interface IUploadProgressRqt{
-  "version":string
-  "clientType":string
-  "function":FuncType
-  "fileName":string
-  "fileMd5":string
+export interface IUploadProgressRqt {
+  version: string;
+  clientType: string;
+  function: FuncType;
+  fileName: string;
+  fileMd5: string;
 }
 // 文件上传
-export function uploadFilePiece(param: IUploadRqt[]|IUploadProgressRqt[]) {
+export function uploadFilePiece(param: IUploadRqt[] | IUploadProgressRqt[]) {
   return AppFastUpload(`/fastcgi`, param);
 }

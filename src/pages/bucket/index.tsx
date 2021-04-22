@@ -187,10 +187,10 @@ const Bucket = (props: any) => {
   const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 文件信息
   const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
   // const [chunkList, setChunkList] = useState<any[]>([]);
-  let uploadTimer:any  = null
+  let uploadTimer: any = null;
   let chunkInfo: any = {};
 
-  const getUploadProgress = async (fileMd5:any) => {
+  const getUploadProgress = async (fileMd5: any) => {
     clearTimeout(uploadTimer);
     try {
       const param: IUploadProgressRqt[] = [
@@ -203,7 +203,7 @@ const Bucket = (props: any) => {
         }
       ];
       const res = await bucketApi.uploadFilePiece(param);
-      console.log('上传进度===',res);
+      console.log('上传进度===', res);
     } catch (error) {
       message.error(error);
     }
@@ -215,7 +215,7 @@ const Bucket = (props: any) => {
     setUploadModalVisible(false);
     setUploadProgressVisible(true);
     const fileMD5Value = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
-    setFileInfo({...fileInfo,fileMd5:fileMD5Value})
+    setFileInfo({ ...fileInfo, fileMd5: fileMD5Value });
     // try {
     //   const param:IUploadRqt[] = [{
     //     "version":"1.0",
@@ -238,7 +238,7 @@ const Bucket = (props: any) => {
     // 获取文件上传进度
     // uploadTimer = setTimeout(() => {
     //   getUploadProgress(fileMD5Value)
-    // }, 3000); 
+    // }, 3000);
   };
 
   // 获取文件MD5

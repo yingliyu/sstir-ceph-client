@@ -110,7 +110,7 @@ export function AppFastUpload<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
       .post(url, data, {
-        baseURL: appConfig.uploadUrl,
+        baseURL: appConfig.uploadUrl
       })
       .then((res) => {
         const { code, data, msg } = res.data;
