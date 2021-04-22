@@ -2,7 +2,9 @@ import instance from './axios';
 import qs from 'qs';
 import { message } from 'antd';
 import appConfig from '@/config';
+import { getToken } from '@/utils/auth';
 
+const token = getToken();
 // GET请求
 export function AppGet<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
@@ -108,7 +110,7 @@ export function AppFastUpload<T>(url: string, data?: any) {
   return new Promise<T>((resolve, reject) => {
     instance
       .post(url, data, {
-        baseURL: appConfig.uploadUrl
+        baseURL: appConfig.uploadUrl,
       })
       .then((res) => {
         const { code, data, msg } = res.data;
@@ -125,6 +127,7 @@ export function AppFastUpload<T>(url: string, data?: any) {
       });
   });
 }
+
 export function AppUpload(url: string, data: any) {
   return new Promise((resolve, reject) => {
     instance

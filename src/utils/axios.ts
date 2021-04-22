@@ -5,7 +5,7 @@ import { getToken } from '@/utils/auth';
 
 // create axios instance
 const instance = axios.create({
-  withCredentials: true,
+  // withCredentials: true,
   baseURL: appConfig.baseUrl,
   timeout: 1000 * 60 * 10 // 10 min
 });
@@ -29,7 +29,7 @@ instance.interceptors.request.use(
     }
     const token = getToken();
     if (token) {
-      config.headers['authorization'] = token;
+      config.headers['Token'] = token;
     }
     return config;
   },

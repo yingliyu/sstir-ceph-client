@@ -301,7 +301,7 @@ const Bucket = (props: any) => {
     });
   };
 
-  const uploadPieces = (blob:File) => {
+  const uploadPieces = (blob: File) => {
     return new Promise((resolve, reject) => {
       // slice start
       const { name, size } = blob;
@@ -392,7 +392,7 @@ const Bucket = (props: any) => {
       setFileList([...fileList, file]);
       return false;
     },
-    onChange:()=>{},
+    onChange: () => {},
     fileList
   };
 

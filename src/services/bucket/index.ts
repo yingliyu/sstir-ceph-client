@@ -1,4 +1,5 @@
 import { AppFastUpload, AppGet, AppPut, AppDelete } from '@/utils/request';
+import Axios from 'axios';
 
 import { IBucketsResponse, ICreateBucketRqt, IDelBucketRqt, IGetUserInfoResponse } from './types';
 
@@ -21,7 +22,7 @@ export function deleteBuckets(param: IDelBucketRqt) {
 export function getFilesInBucket(param: ICreateBucketRqt) {
   return AppGet<any>(`/client/bucket/${param.bucketName}`, param);
 }
-export type FuncType = 100 | 200 | 300 | 400
+export type FuncType = 100 | 200 | 300 | 400;
 export interface IUploadRqt {
   version?: string;
   clientType?: string;
@@ -30,13 +31,19 @@ export interface IUploadRqt {
   fileSize: number;
   fileMd5: string;
   filePieceMd5?: string;
-  filePieceNum?: number;
+  filePieceNum?: number; // 分片序列号，从1开始
   filePieceData?: string; // 当前分片数据base64
   filePieceDataLen?: number; // base64 大小
   fileChunckSize?: number; // 分片大小，分片大小不能超过50M，建议值20M
 }
-
+export interface IUploadProgressRqt{
+  "version":string
+  "clientType":string
+  "function":FuncType
+  "fileName":string
+  "fileMd5":string
+}
 // 文件上传
-export function uploadFilePiece(param: IUploadRqt) {
+export function uploadFilePiece(param: IUploadRqt[]|IUploadProgressRqt[]) {
   return AppFastUpload(`/fastcgi`, param);
 }

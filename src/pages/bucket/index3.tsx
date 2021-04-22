@@ -171,7 +171,6 @@ const Bucket = (props: any) => {
   let blobSlice = File.prototype.slice;
   const handleUpload = async () => {
     console.log(fileList);
-
   };
 
   // file slice
@@ -282,27 +281,27 @@ const Bucket = (props: any) => {
       console.log(err);
     });
   };
-const creatFileInfo = (file:Blob)=>{
-  console.log(file);
-  
-  // const currentChunk = 0;
-  // const fileSize = file.size;
-  // const fileName = file.name;
-  // const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
-  // const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
-  // setFileList([
-  //   ...fileList,
-  //   {
-  //     file,
-  //     fileMd5: `${new Date().valueOf()}`,
-  //     fileName,
-  //     fileSize,
-  //     chunkSize,
-  //     chunks,
-  //     filePieceNum: currentChunk
-  //   }
-  // ]);
-}
+  const creatFileInfo = (file: Blob) => {
+    console.log(file);
+
+    // const currentChunk = 0;
+    // const fileSize = file.size;
+    // const fileName = file.name;
+    // const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
+    // const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
+    // setFileList([
+    //   ...fileList,
+    //   {
+    //     file,
+    //     fileMd5: `${new Date().valueOf()}`,
+    //     fileName,
+    //     fileSize,
+    //     chunkSize,
+    //     chunks,
+    //     filePieceNum: currentChunk
+    //   }
+    // ]);
+  };
   // 上传组件相关属性
   const uploadProps: any = {
     onRemove: (file: any) => {
@@ -328,7 +327,6 @@ const creatFileInfo = (file:Blob)=>{
       return false;
     },
     fileList
-    
   };
 
   const [curStep, setCurStep] = useState<number>(0);

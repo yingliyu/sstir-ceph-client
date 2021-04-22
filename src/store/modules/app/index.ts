@@ -57,9 +57,9 @@ export const checkLogin = (data: any): AppThunk => async (dispatch) => {
     const token: any = await appApi.checkLogin(data);
     setTokenInCookie(token);
     dispatch(setToken(token));
-    message.success('登录成功！3s后自动跳转');
-    setTimeout(() => window.open('/admin/dashboard', '_self'), 3000);
-  } catch (err) {
+    // message.success('登录成功！');
+    window.open('/admin/dashboard', '_self');
+  } catch (err){
     message.error(err);
     console.log(initialState.errMsg, err);
     dispatch(setErrMsg(err || err.toString()));

@@ -20,10 +20,10 @@ import {
   UploadOutlined
 } from '@ant-design/icons';
 import { bucketApi } from '@/services';
-import { IUploadRqt } from '@/services/bucket';
+import { IUploadRqt, IUploadProgressRqt } from '@/services/bucket';
 import SparkMD5 from 'spark-md5';
-import axios from 'axios';
 import css from './index.module.less';
+import Axios from 'axios';
 
 const data: any[] = [];
 for (let i = 0; i < 3; i++) {
@@ -126,24 +126,27 @@ const Bucket = (props: any) => {
       )
     }
   ];
-  const [visible, setVisible] = useState(false);
+  // 上传文件步骤Modal
+  const [uploadVisible, setUploadModalVisible] = useState(false);
+  // 上传文件进度状态Modal
+  const [uploadProgressVisible, setUploadProgressVisible] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const showCreateModal = () => {
-    setVisible(true);
+    setUploadModalVisible(true);
   };
 
   const handleCreateOk = () => {
     setConfirmLoading(true);
     setTimeout(() => {
-      setVisible(false);
+      setUploadModalVisible(false);
       setConfirmLoading(false);
     }, 2000);
   };
 
   const handleCreateCancel = () => {
     console.log('Clicked cancel button');
-    setVisible(false);
+    setUploadModalVisible(false);
   };
 
   interface IFileProps extends Blob {
@@ -171,18 +174,73 @@ const Bucket = (props: any) => {
     retryPiece?: Record<number, number>; // 记录每片重传次数，该片上传失败三次以上则状态变更为上传失败
     uploadSpeed?: number; // 上传速度，根据已上传文件大小及创建至今持续时间获取
   }
+  interface IChunkProps {
+    filePieceMd5?: string;
+    filePieceNum?: number; // 分片序列号，从1开始
+    filePieceData?: string; // 当前分片数据base64
+    filePieceDataLen?: number; // base64 大小
+    fileChunckSize?: number; // 分片大小，分片大小不能超过50M，建议值20M
+  }
   // 文件上传功能
-  const [uploading, setUploading] = useState<boolean>();
-  const [fileList, setFileList] = useState<File[]>([]);
-  const [fileInfo, setFileInfo] = useState<IFileItemProps & any>();
-  const [chunkInfo, setChunkInfo] = useState<any>();
+  const [uploading, setUploading] = useState<boolean>(); // 加载状态
+  const [fileList, setFileList] = useState<File[]>([]); // 文件列表
+  const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 文件信息
+  const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
+  // const [chunkList, setChunkList] = useState<any[]>([]);
+  let uploadTimer:any  = null
+  let chunkInfo: any = {};
+
+  const getUploadProgress = async (fileMd5:any) => {
+    clearTimeout(uploadTimer);
+    try {
+      const param: IUploadProgressRqt[] = [
+        {
+          version: '1.0', // 版本号
+          clientType: 'Brower', // 来自浏览器端还是PC端
+          function: 400, // 400获取文件上传进度
+          fileName: fileInfo.fileName, // 文件名
+          fileMd5: fileMd5 // 文件MD5
+        }
+      ];
+      const res = await bucketApi.uploadFilePiece(param);
+      console.log('上传进度===',res);
+    } catch (error) {
+      message.error(error);
+    }
+  };
   // upload
   const handleUpload = async () => {
     console.log(fileList);
     console.log(fileInfo);
-    md5File(fileList[0]);
-    // continueUpload(fileInfo);
+    setUploadModalVisible(false);
+    setUploadProgressVisible(true);
+    const fileMD5Value = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
+    setFileInfo({...fileInfo,fileMd5:fileMD5Value})
+    // try {
+    //   const param:IUploadRqt[] = [{
+    //     "version":"1.0",
+    //     "clientType":"Brower",
+    //     "function":100,
+    //     "fileName":"asdgasdg",
+    //     "fileSize":333333,
+    //     "fileMd5":"asdgasdg",
+    //     "filePieceMd5":"asdgasdg",
+    //     "filePieceNum":1,
+    //     "filePieceData":"asdgasdg",
+    //     "filePieceDataLen":346346,
+    //     "fileChunckSize":346346
+    //     }]
+    //   const res = await bucketApi.uploadFilePiece(param)
+    // } catch (error) {
+
+    // }
+    await uploadChunk(fileInfo); // 分片上传
+    // 获取文件上传进度
+    // uploadTimer = setTimeout(() => {
+    //   getUploadProgress(fileMD5Value)
+    // }, 3000); 
   };
+
   // 获取文件MD5
   const md5File = (file: any) => {
     return new Promise((resolve, reject) => {
@@ -194,7 +252,7 @@ const Bucket = (props: any) => {
       const fileName = file.name;
       const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
       const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
-      let filePieceNum = 0;
+      let filePieceNum = 0; // 分片序列号，从1开始
       let spark = new SparkMD5.ArrayBuffer();
       let fileReader = new FileReader();
 
@@ -203,32 +261,22 @@ const Bucket = (props: any) => {
         console.log('read chunk nr', filePieceNum + 1, 'of', chunks);
         spark.append(e.target.result); // Append array buffer
         filePieceNum++;
+
         const filePieceSpark = new SparkMD5(); // 文件md5
         filePieceSpark.append(result);
         const filePieceMd5 = filePieceSpark.end();
-
-        const base64 = result?.split(';base64,')[1];
-
-        setChunkInfo({
-          ...chunkInfo,
-          [filePieceNum]: {
-            filePieceMd5,
-            filePieceNum,
-            filePieceData: base64,
-            filePieceDataLen: base64?.length,
-            fileChunckSize: chunkSize
-          }
-        });
-        console.log({
-          ...chunkInfo,
-          [filePieceNum]: {
-            filePieceMd5,
-            filePieceNum,
-            filePieceData: base64,
-            filePieceDataLen: base64?.length,
-            fileChunckSize: chunkSize
-          }
-        });
+        const filePieceData = result?.split(';base64,')[1];
+        // 构造分片文件信息
+        const curChunkInfo: IChunkProps = {
+          filePieceNum,
+          filePieceMd5,
+          filePieceData,
+          filePieceDataLen: filePieceData?.length,
+          fileChunckSize: chunkSize
+        };
+        chunkInfo[filePieceNum] = curChunkInfo;
+        // setCurChunk(curChunkInfo);
+        // chunkList.push(curChunkInfo)
 
         if (filePieceNum < chunks) {
           loadNext();
@@ -237,8 +285,6 @@ const Bucket = (props: any) => {
           console.log('finished loading');
           // alert(spark.end() + '---' + (cur - pre)); // Compute hash
           let result = spark.end();
-          setFileInfo({ fileMd5: result, ...fileInfo });
-          console.log(result);
           resolve(result);
         }
       };
@@ -249,58 +295,65 @@ const Bucket = (props: any) => {
       function loadNext() {
         let start = filePieceNum * chunkSize;
         let end = start + chunkSize >= file.size ? file.size : start + chunkSize;
-        fileReader.readAsDataURL(blobSlice.call(file, start, end));
+        fileReader.readAsDataURL(blobSlice.call(file, start, end)); // 分片文件转Base64
       }
       loadNext();
     });
   };
-  // 分片上传
-  // const uploadChunk = async (file: any, fileMd5Value: string, chunkList: any[]) => {
-  //   const requestList = [];
-  //   const { fileSize, chunkSize } = file;
-  //   let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
-  //   for (let i = 0; i < chunks; i++) {
-  //     let exit = chunkList.indexOf(i + '') > -1;
-  //     // 如果已经存在, 则不用再上传当前块
-  //     if (!exit) {
-  //       requestList.push(uploadHandle(i, fileMd5Value, file));
-  //     }
-  //   }
-  //   console.log({ requestList });
-  //   const result =
-  //     requestList.length > 0
-  //       ? await Promise.all(requestList)
-  //           .then((result) => {
-  //             console.log({ result });
-  //             return result.every((i) => (i as any).ok);
-  //           })
-  //           .catch((err) => {
-  //             return err;
-  //           })
-  //       : true;
-  //   console.log({ result });
-  //   return result === true;
-  // };
 
-  const uploadHandle = (i: number, filePieceMd5: string, fileInfo: any) => {
-    return new Promise((resolve, reject) => {
-      const { file, fileName, fileSize, chunkSize, fileMd5 } = fileInfo;
-      let end = (i + 1) * chunkSize >= file.size ? file.size : (i + 1) * chunkSize;
-      const param: IUploadRqt = {
-        version: '1.0',
-        clientType: '1',
-        function: 100,
-        fileName: fileName,
-        fileSize,
-        fileMd5,
-        filePieceMd5,
-        filePieceNum: i,
-        // filePieceData: base64, // 当前分片数据base64
-        // filePieceDataLen: base64?.length, // base64 大小
-        fileChunckSize: chunkSize // 分片大小，分片大小不能超过50M，建议值20M
-      };
-      const data = bucketApi.uploadFilePiece(param);
+  // 分片上传
+  const uploadChunk = async (file: any) => {
+    const requestList: any = [];
+    const { fileSize, chunkSize } = file;
+    let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
+    Object.keys(chunkInfo).forEach((key: any) => {
+      // requestList.push(upload(key));
+      upload(key);
     });
+
+    // console.log({ requestList });
+    // const result =
+    //   requestList.length > 0
+    //     ? await Promise.all(requestList)
+    //         .then((result) => {
+    //           console.log({ result });
+    //           return result.every((i) => (i as any).ok);
+    //         })
+    //         .catch((err) => {
+    //           return err;
+    //         })
+    //     : true;
+    // console.log({ result });
+    // return result === true;
+  };
+
+  const upload = async (i: number) => {
+    console.log(chunkInfo);
+
+    // return new Promise((resolve, reject) => {
+    const { file, fileName, fileSize, chunkSize, fileMd5 } = fileInfo;
+    const { filePieceMd5, filePieceData, fileChunckSize } = chunkInfo[i];
+    let end = (i + 1) * chunkSize >= file.size ? file.size : (i + 1) * chunkSize;
+    const param: IUploadRqt = {
+      version: '1.0',
+      clientType: '1',
+      function: 100,
+      fileName: fileName,
+      fileSize,
+      fileMd5,
+      filePieceMd5,
+      filePieceNum: i,
+      filePieceData, // 当前分片数据base64
+      filePieceDataLen: filePieceData?.length, // base64 大小
+      fileChunckSize // 分片大小，分片大小不能超过50M，建议值20M
+    };
+    try {
+      const res = await bucketApi.uploadFilePiece([param]);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+    // });
   };
 
   const creatFileInfo = (file: File) => {
@@ -311,7 +364,7 @@ const Bucket = (props: any) => {
     const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
     setFileInfo({
       file,
-      fileMd5: `${new Date().valueOf()}`,
+      // fileMd5: `${new Date().valueOf()}`,
       fileName,
       fileSize,
       chunkSize,
@@ -399,9 +452,10 @@ const Bucket = (props: any) => {
       <Modal title="提示" visible={isModalVisible} onOk={handleOk} onCancel={handleCancel}>
         <p>删除文件后无法恢复，您确定删除吗？</p>
       </Modal>
+
       <Modal
         title="上传文件"
-        visible={visible}
+        visible={uploadVisible}
         forceRender={true}
         onOk={handleCreateOk}
         confirmLoading={confirmLoading}
@@ -460,6 +514,18 @@ const Bucket = (props: any) => {
             {curStep < 2 ? <Button onClick={nextStepHandle}>下一步</Button> : null}
           </Space>
         </div>
+      </Modal>
+
+      <Modal
+        title="20px to Top"
+        style={{ top: 20 }}
+        visible={uploadProgressVisible}
+        onOk={() => setUploadProgressVisible(false)}
+        onCancel={() => setUploadProgressVisible(false)}
+      >
+        <p>some contents...</p>
+        <p>some contents...</p>
+        <p>some contents...</p>
       </Modal>
     </div>
   );
