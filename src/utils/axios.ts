@@ -7,7 +7,7 @@ import { getToken } from '@/utils/auth';
 const instance = axios.create({
   // withCredentials: true,
   baseURL: appConfig.baseUrl,
-  timeout: 1000 * 60 * 10 // 10 min
+  timeout: 1000 * 60 * 20 // 10 min
 });
 
 // 有些特殊的请求，不需要展示loading

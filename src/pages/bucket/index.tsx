@@ -11,7 +11,8 @@ import {
   Select,
   Switch,
   Steps,
-  Upload
+  Upload,
+  Progress
 } from 'antd';
 import {
   PlusCircleOutlined,
@@ -22,8 +23,9 @@ import {
 import { bucketApi } from '@/services';
 import { IUploadRqt, IUploadProgressRqt } from '@/services/bucket';
 import SparkMD5 from 'spark-md5';
+import { showLoading, hideLoading } from '@/utils/loading';
 import css from './index.module.less';
-import Axios from 'axios';
+
 
 const data: any[] = [];
 for (let i = 0; i < 3; i++) {
@@ -135,6 +137,12 @@ const Bucket = (props: any) => {
   const showCreateModal = () => {
     setUploadModalVisible(true);
   };
+  const closeUploadModal = ()=>{
+    if(uploading){
+      message.warning('文件上传中，确定关闭吗？')
+    }
+    setUploadProgressVisible(false)
+  }
 
   const handleCreateOk = () => {
     setConfirmLoading(true);
@@ -186,12 +194,15 @@ const Bucket = (props: any) => {
   const [fileList, setFileList] = useState<File[]>([]); // 文件列表
   const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 文件信息
   const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
-  // const [chunkList, setChunkList] = useState<any[]>([]);
+  const [chunkList, setChunkList] = useState<any[]>([]); // 上传成功的文件片
+  const [progressData, setProgressData] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<any>();
   let uploadTimer: any = null;
   let chunkInfo: any = {};
-
+  let uploadProgressNum = 0;
   const getUploadProgress = async (fileMd5: any) => {
     clearTimeout(uploadTimer);
+    const { fileSize } = fileInfo;
     try {
       const param: IUploadProgressRqt[] = [
         {
@@ -202,43 +213,58 @@ const Bucket = (props: any) => {
           fileMd5: fileMd5 // 文件MD5
         }
       ];
-      const res = await bucketApi.uploadFilePiece(param);
+      console.log('进度入参：', param);
+      const res: any = await bucketApi.uploadFilePiece(param);
       console.log('上传进度===', res);
+      const { result, resultdes, fileUploadedDataLen } = res;
+      if (result === 1) {
+        uploadProgressNum++;
+      }
+
+      if (uploadProgressNum < 5) {
+        uploadTimer = setTimeout(() => {
+          getUploadProgress(fileMd5);
+        }, 500);
+      } else {
+        if (result === 1) {
+          message.error('服务器忙，请稍后再试');
+          setUploadStatus('exception');
+        }
+        clearTimeout(uploadTimer);
+      }
+      if (result === 0) {
+        setProgressData(Math.ceil(fileUploadedDataLen / fileSize) * 100);
+        clearTimeout(uploadTimer);
+      }
+      if (resultdes.includes('success')) {
+        // 上传成功
+        hideLoading()
+        setUploadStatus('');
+        setUploading(false);
+        setProgressData(100); // 进度100%
+        // message.success(resultdes);
+      }
     } catch (error) {
       message.error(error);
     }
   };
+
   // upload
   const handleUpload = async () => {
     console.log(fileList);
     console.log(fileInfo);
     setUploadModalVisible(false);
     setUploadProgressVisible(true);
-    const fileMD5Value = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
+    setUploadStatus('active');
+    setUploading(true);
+    const fileMD5Value: any = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
     setFileInfo({ ...fileInfo, fileMd5: fileMD5Value });
-    // try {
-    //   const param:IUploadRqt[] = [{
-    //     "version":"1.0",
-    //     "clientType":"Brower",
-    //     "function":100,
-    //     "fileName":"asdgasdg",
-    //     "fileSize":333333,
-    //     "fileMd5":"asdgasdg",
-    //     "filePieceMd5":"asdgasdg",
-    //     "filePieceNum":1,
-    //     "filePieceData":"asdgasdg",
-    //     "filePieceDataLen":346346,
-    //     "fileChunckSize":346346
-    //     }]
-    //   const res = await bucketApi.uploadFilePiece(param)
-    // } catch (error) {
 
-    // }
-    await uploadChunk(fileInfo); // 分片上传
+    await uploadChunk(fileInfo, fileMD5Value); // 分片上传
     // 获取文件上传进度
-    // uploadTimer = setTimeout(() => {
-    //   getUploadProgress(fileMD5Value)
-    // }, 3000);
+    uploadTimer = setTimeout(() => {
+      getUploadProgress(fileMD5Value);
+    }, 100);
   };
 
   // 获取文件MD5
@@ -302,65 +328,59 @@ const Bucket = (props: any) => {
   };
 
   // 分片上传
-  const uploadChunk = async (file: any) => {
+  const uploadChunk = (file: any, fileMD5Value: string) => {
     const requestList: any = [];
     const { fileSize, chunkSize } = file;
     let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
-    Object.keys(chunkInfo).forEach((key: any) => {
-      // requestList.push(upload(key));
-      upload(key);
+    Object.keys(chunkInfo).forEach(async (key: any) => {
+      console.log('*****', key);
+      let exit = chunkList.indexOf(key) > -1;
+      if (!exit) {
+        await upload(key, fileMD5Value);
+      }
     });
-
-    // console.log({ requestList });
-    // const result =
-    //   requestList.length > 0
-    //     ? await Promise.all(requestList)
-    //         .then((result) => {
-    //           console.log({ result });
-    //           return result.every((i) => (i as any).ok);
-    //         })
-    //         .catch((err) => {
-    //           return err;
-    //         })
-    //     : true;
-    // console.log({ result });
-    // return result === true;
   };
-
-  const upload = async (i: number) => {
+  // 上传API
+  const upload = async (i: number, fileMd5: string) => {
     console.log(chunkInfo);
-
-    // return new Promise((resolve, reject) => {
-    const { file, fileName, fileSize, chunkSize, fileMd5 } = fileInfo;
+    const { file, fileName, fileSize, chunkSize } = fileInfo;
     const { filePieceMd5, filePieceData, fileChunckSize } = chunkInfo[i];
     let end = (i + 1) * chunkSize >= file.size ? file.size : (i + 1) * chunkSize;
-    const param: IUploadRqt = {
-      version: '1.0',
-      clientType: '1',
-      function: 100,
-      fileName: fileName,
-      fileSize,
-      fileMd5,
-      filePieceMd5,
-      filePieceNum: i,
-      filePieceData, // 当前分片数据base64
-      filePieceDataLen: filePieceData?.length, // base64 大小
-      fileChunckSize // 分片大小，分片大小不能超过50M，建议值20M
-    };
+    const param: IUploadRqt[] = [
+      {
+        version: '1.0',
+        clientType: '1',
+        function: 100,
+        fileName: fileName,
+        fileSize,
+        fileMd5,
+        filePieceMd5,
+        filePieceNum: Number(i),
+        filePieceData, // 当前分片数据base64
+        filePieceDataLen: filePieceData?.length, // base64 大小
+        fileChunckSize // 分片大小，分片大小不能超过50M，建议值20M
+      }
+    ];
+    console.log('第', i, '片文件--入参：', param);
     try {
-      const res = await bucketApi.uploadFilePiece([param]);
-      console.log(res);
+      const res: any = await bucketApi.uploadFilePiece(param);
+      const { result } = res;
+      console.log('第', i, '片文件--返回结果：', res);
+      setChunkList([...chunkList, i]);
+      if (result === 1) {
+        // "添加数据到缓存失败"再重新请求一次
+        upload(i, fileMd5);
+      }
     } catch (error) {
       console.log(error);
     }
-    // });
   };
 
   const creatFileInfo = (file: File) => {
     const currentChunk = 0;
     const fileSize = file.size;
     const fileName = file.name;
-    const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为20MB: 1024*1024*20
+    const chunkSize = 1024 * 1024 * 7; // 每个文件切片大小定为7MB: 1024*1024*7
     const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
     setFileInfo({
       file,
@@ -517,15 +537,16 @@ const Bucket = (props: any) => {
       </Modal>
 
       <Modal
-        title="20px to Top"
-        style={{ top: 20 }}
+        title="上传文件"
+        style={{ top: 10, right: 0 }}
+        mask={false}
         visible={uploadProgressVisible}
+        footer={null}
         onOk={() => setUploadProgressVisible(false)}
-        onCancel={() => setUploadProgressVisible(false)}
+        onCancel={closeUploadModal}
       >
-        <p>some contents...</p>
-        <p>some contents...</p>
-        <p>some contents...</p>
+        <p>{fileInfo?.fileName + ':'}</p>
+        <Progress percent={progressData} size="small" status={uploadStatus} />
       </Modal>
     </div>
   );
