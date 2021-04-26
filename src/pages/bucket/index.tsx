@@ -12,29 +12,41 @@ import {
   Switch,
   Steps,
   Upload,
-  Progress
+  Progress,
+  List
 } from 'antd';
 import {
   PlusCircleOutlined,
   CloseCircleOutlined,
   RetweetOutlined,
-  UploadOutlined
+  UploadOutlined,
+  ReloadOutlined,
+  CloseOutlined,
+  PauseOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons';
 import { bucketApi } from '@/services';
 import { IUploadRqt, IUploadProgressRqt } from '@/services/bucket';
 import SparkMD5 from 'spark-md5';
 import { showLoading, hideLoading } from '@/utils/loading';
 import css from './index.module.less';
-
-
-const data: any[] = [];
-for (let i = 0; i < 3; i++) {
-  data.push({
-    key: i,
-    name: `file${i}`,
-    age: 32,
-    address: `2021-03-${i}2`
-  });
+export interface FileItemType {
+  fileMd5: string; // 取文件uuid
+  fileSize: number;
+  fileName: string;
+  file: File;
+  chunkSize: number; // 分片大小
+  chunks: number; // 总片数
+  filePieceNum: number; // 已上传片数
+  // paused: boolean;
+  uuid?: string; // 文件id
+  sampleUuid?: string; // 文件所属样本id
+  status?: number; // 当前文件上传状态, -1: error; 0: uploading; 1: finished; 2: paused; 3: waitting;
+  createTime?: Date; // 创建时间
+  succeedTime?: Date; // 成功时间（实则每次上传停止都会更新该时间）
+  retryPiece?: Record<number, number>; // 记录每片重传次数，该片上传失败三次以上则状态变更为上传失败
+  uploadSpeed?: number; // 上传速度，根据已上传文件大小及创建至今持续时间获取
+  uploadFileName?: string;
 }
 const formItemLayout = {
   labelCol: { span: 6 },
@@ -44,21 +56,41 @@ const formItemLayout = {
 const Bucket = (props: any) => {
   const [curBucketName, setCurBucketName] = useState<string>();
   const { bucketName } = useParams<any>();
+  const [list, setList] = useState([]);
 
   useEffect(() => {
     setCurBucketName(bucketName);
     getFilesInBucket();
+    getFileList();
   }, []);
 
+  
   const getFilesInBucket = async () => {
     try {
       const param = {
-        bucketName: curBucketName!
+        bucketName: bucketName!
       };
       const res = await bucketApi.getFilesInBucket(param);
       console.log(res);
     } catch (error) {}
   };
+
+  const getFileList = async () => {
+    try {
+      const param = {
+        bucketName: bucketName!
+      };
+      const res = await bucketApi.getFileListInBucket(param);
+      const result: any = res.map((item: any) => {
+        item.key = item.filename;
+        return item;
+      });
+      setList(result);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const onSelectChange = (selectedRowKeys: any) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys);
@@ -86,34 +118,34 @@ const Bucket = (props: any) => {
   const columns = [
     {
       title: '名称',
-      dataIndex: 'name',
+      dataIndex: 'filename',
       sorter: true // 服务端排序
     },
     {
       title: '大小',
-      dataIndex: 'age',
+      dataIndex: 'fileSize',
       sorter: true // 服务端排序
     },
     {
       title: '标签数',
-      dataIndex: 'age',
+      dataIndex: 'tagsNum',
       sorter: true // 服务端排序
     },
-    {
-      title: 'MD5',
-      dataIndex: 'age'
-    },
+    // {
+    //   title: 'MD5',
+    //   dataIndex: 'age'
+    // },
     {
       title: '所属存储池',
-      dataIndex: 'age'
+      dataIndex: 'pool'
     },
     {
       title: '拥有者',
-      dataIndex: 'address'
+      dataIndex: 'owner'
     },
     {
       title: '创建时间',
-      dataIndex: 'address',
+      dataIndex: 'createTime',
       sorter: true
     },
 
@@ -137,12 +169,12 @@ const Bucket = (props: any) => {
   const showCreateModal = () => {
     setUploadModalVisible(true);
   };
-  const closeUploadModal = ()=>{
-    if(uploading){
-      message.warning('文件上传中，确定关闭吗？')
+  const closeUploadModal = () => {
+    if (uploading) {
+      message.warning('文件上传中，确定关闭吗？');
     }
-    setUploadProgressVisible(false)
-  }
+    setUploadProgressVisible(false);
+  };
 
   const handleCreateOk = () => {
     setConfirmLoading(true);
@@ -197,6 +229,7 @@ const Bucket = (props: any) => {
   const [chunkList, setChunkList] = useState<any[]>([]); // 上传成功的文件片
   const [progressData, setProgressData] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<any>();
+ 
   let uploadTimer: any = null;
   let chunkInfo: any = {};
   let uploadProgressNum = 0;
@@ -238,9 +271,10 @@ const Bucket = (props: any) => {
       }
       if (resultdes.includes('success')) {
         // 上传成功
-        hideLoading()
+        hideLoading();
         setUploadStatus('');
         setUploading(false);
+        getFileList()
         setProgressData(100); // 进度100%
         // message.success(resultdes);
       }
@@ -434,6 +468,51 @@ const Bucket = (props: any) => {
   };
   const onBlur = () => {};
   const onFocus = () => {};
+  const pauseUpload = ()=>{
+    console.log('pause')
+  }
+  const cancleUpload = ()=>{
+    console.log('cancleUpload')
+  }
+  const continueUpload = ()=>{
+    console.log('continueUpload')
+  }
+
+  // 控制文件上传
+  const actionRender = (status:Number)=>{
+    let actionEle = [] as React.ReactNode[];
+    let rateText = '';
+    switch (status) {
+      case 0:
+        actionEle = [
+          <PauseOutlined key="pause" onClick={pauseUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />,
+        ];
+        // rateText = `${progressRatio}(${handleFileSize(uploadSpeed || 0)}/s)`;
+        break;
+      case -1:
+        actionEle = [
+          <ReloadOutlined key="pause" onClick={continueUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />,
+        ];
+        rateText = 'Fail';
+        break;
+      case 2:
+        actionEle = [
+          <CaretRightOutlined key="continue" onClick={continueUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />,
+        ];
+        rateText = 'Pause';
+        break;
+      case 1:
+        // rateText = `Completed(${moment(succeedTime).format('YY/MM/DD HH:mm')})`;
+        break;
+      case 3:
+      default:
+        rateText = 'Waitting...';
+        break;
+    }
+  }
 
   return (
     <div className={css['bucket-wrapper']}>
@@ -458,7 +537,7 @@ const Bucket = (props: any) => {
       <Table
         rowSelection={rowSelection}
         columns={columns}
-        dataSource={data}
+        dataSource={list}
         scroll={{ y: '600px' }}
         pagination={{
           position: ['topRight'],
@@ -545,8 +624,21 @@ const Bucket = (props: any) => {
         onOk={() => setUploadProgressVisible(false)}
         onCancel={closeUploadModal}
       >
-        <p>{fileInfo?.fileName + ':'}</p>
-        <Progress percent={progressData} size="small" status={uploadStatus} />
+        <List
+      header={<div>Header</div>}
+      footer={<div>Footer</div>}
+      bordered
+      dataSource={[fileInfo]}
+      renderItem={item => (
+        <List.Item>
+          <b> {item.fileName}</b>  
+          <Progress percent={progressData} size="small" status={uploadStatus} />
+          {actionRender}
+        </List.Item>
+      )}
+    />
+        {/* <p>{fileInfo?.fileName + ':'}</p>
+        <Progress percent={progressData} size="small" status={uploadStatus} /> */}
       </Modal>
     </div>
   );

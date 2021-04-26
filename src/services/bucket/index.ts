@@ -47,3 +47,8 @@ export interface IUploadProgressRqt {
 export function uploadFilePiece(param: IUploadRqt[] | IUploadProgressRqt[]) {
   return AppFastUpload(`/fastcgi`, param);
 }
+
+// 获取文件列表
+export function getFileListInBucket(param: ICreateBucketRqt) {
+  return AppGet<any>(`/client/object/${param.bucketName}`, param);
+}
