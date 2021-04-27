@@ -32,11 +32,11 @@ import { showLoading, hideLoading } from '@/utils/loading';
 import css from './index.module.less';
 export interface FileItemType {
   fileMd5: string; // 取文件uuid
-  fileSize: number;
+  fileSize?: number;
   fileName: string;
-  file: File;
-  chunkSize: number; // 分片大小
-  chunks: number; // 总片数
+  file?: File;
+  chunkSize?: number; // 分片大小
+  chunks?: number; // 总片数
   filePieceNum: number; // 已上传片数
   // paused: boolean;
   uuid?: string; // 文件id
@@ -64,7 +64,6 @@ const Bucket = (props: any) => {
     getFileList();
   }, []);
 
-  
   const getFilesInBucket = async () => {
     try {
       const param = {
@@ -160,6 +159,7 @@ const Bucket = (props: any) => {
       )
     }
   ];
+
   // 上传文件步骤Modal
   const [uploadVisible, setUploadModalVisible] = useState(false);
   // 上传文件进度状态Modal
@@ -227,15 +227,28 @@ const Bucket = (props: any) => {
   const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 文件信息
   const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
   const [chunkList, setChunkList] = useState<any[]>([]); // 上传成功的文件片
-  const [progressData, setProgressData] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<any>();
- 
+  const [progressData, setProgressData] = useState(10);
+  const [uploadStatus, setUploadStatus] = useState<any>('normal'); // normal|success|exception|active
+  const [uploadingFiles, setUploadingFiles] = useState<FileItemType[]>([]);
+
   let uploadTimer: any = null;
   let chunkInfo: any = {};
   let uploadProgressNum = 0;
+  // 文件上传进度
   const getUploadProgress = async (fileMd5: any) => {
     clearTimeout(uploadTimer);
     const { fileSize } = fileInfo;
+    setUploadingFiles([
+      {
+        fileMd5: fileMd5,
+        fileSize: fileInfo?.fileSize,
+        fileName: fileInfo?.fileName,
+        filePieceNum: fileInfo?.filePieceNum,
+        status: getStatus(uploadStatus),
+        succeedTime: new Date(),
+        uploadSpeed: 0
+      }
+    ]);
     try {
       const param: IUploadProgressRqt[] = [
         {
@@ -266,15 +279,24 @@ const Bucket = (props: any) => {
         clearTimeout(uploadTimer);
       }
       if (result === 0) {
+        console.log('上传进度', fileUploadedDataLen);
         setProgressData(Math.ceil(fileUploadedDataLen / fileSize) * 100);
+        // setUploadingFiles([
+        //   {
+        //     ...uploadingFiles[0],
+        //     status: 0,
+        //     succeedTime: new Date(),
+        //     uploadSpeed: 0
+        //   }
+        // ]);
         clearTimeout(uploadTimer);
       }
       if (resultdes.includes('success')) {
         // 上传成功
         hideLoading();
-        setUploadStatus('');
+        setUploadStatus('success');
         setUploading(false);
-        getFileList()
+        getFileList();
         setProgressData(100); // 进度100%
         // message.success(resultdes);
       }
@@ -282,7 +304,19 @@ const Bucket = (props: any) => {
       message.error(error);
     }
   };
+const getStatus = (val:string)=>{
+ switch (val){
+    case 'active':
+   return 0
+  case 'exception':
+    return -1
+  case 'success':
+    return 1
+  case 'pause':
+    return 3
+ }
 
+}
   // upload
   const handleUpload = async () => {
     console.log(fileList);
@@ -291,9 +325,25 @@ const Bucket = (props: any) => {
     setUploadProgressVisible(true);
     setUploadStatus('active');
     setUploading(true);
+    setUploadingFiles([
+      {
+        fileMd5: fileInfo?.fileMd5,
+        fileSize: fileInfo?.fileSize,
+        fileName: fileInfo?.fileName,
+        filePieceNum: fileInfo?.filePieceNum,
+        status: getStatus(uploadStatus),
+        succeedTime: new Date(),
+        uploadSpeed: 0
+      }
+    ]);
     const fileMD5Value: any = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
     setFileInfo({ ...fileInfo, fileMd5: fileMD5Value });
-
+    setUploadingFiles([
+      {
+        ...uploadingFiles[0],
+        fileMd5: fileInfo?.fileMd5
+      }
+    ]);
     await uploadChunk(fileInfo, fileMD5Value); // 分片上传
     // 获取文件上传进度
     uploadTimer = setTimeout(() => {
@@ -468,39 +518,39 @@ const Bucket = (props: any) => {
   };
   const onBlur = () => {};
   const onFocus = () => {};
-  const pauseUpload = ()=>{
-    console.log('pause')
-  }
-  const cancleUpload = ()=>{
-    console.log('cancleUpload')
-  }
-  const continueUpload = ()=>{
-    console.log('continueUpload')
-  }
+  const pauseUpload = () => {
+    console.log('pause');
+  };
+  const cancleUpload = () => {
+    console.log('cancleUpload');
+  };
+  const continueUpload = () => {
+    console.log('continueUpload');
+  };
 
   // 控制文件上传
-  const actionRender = (status:Number)=>{
+  const actionRender = (status: Number) => {
     let actionEle = [] as React.ReactNode[];
     let rateText = '';
     switch (status) {
       case 0:
         actionEle = [
           <PauseOutlined key="pause" onClick={pauseUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />
         ];
         // rateText = `${progressRatio}(${handleFileSize(uploadSpeed || 0)}/s)`;
         break;
       case -1:
         actionEle = [
           <ReloadOutlined key="pause" onClick={continueUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />
         ];
         rateText = 'Fail';
         break;
       case 2:
         actionEle = [
           <CaretRightOutlined key="continue" onClick={continueUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />,
+          <CloseOutlined key="close" onClick={cancleUpload} />
         ];
         rateText = 'Pause';
         break;
@@ -512,7 +562,41 @@ const Bucket = (props: any) => {
         rateText = 'Waitting...';
         break;
     }
-  }
+    return actionEle
+  };
+  const fileControlColumns: any = [
+    {
+      title: '名称',
+      dataIndex: 'fileName',
+      key: 'fileName',
+      width: 100
+    },
+    // {
+    //   title: '大小',
+    //   dataIndex: 'fileSize',
+    //   key: 'fileSize',
+    //   sorter: true // 服务端排序
+    // },
+    {
+      title: '状态',
+      dataIndex: 'progress',
+      key: 'progress',
+      render: () => {
+        return <Progress percent={progressData} size="small" status={uploadStatus} />;
+      }
+    },
+    {
+      title: '操作',
+      dataIndex: 'operation',
+      key: 'operation',
+      width: 100,
+      render: (text: string, record: FileItemType) => {
+        const { status } = record;
+        const actionEle = actionRender(status!);
+        return actionEle;
+      }
+    }
+  ];
 
   return (
     <div className={css['bucket-wrapper']}>
@@ -624,21 +708,7 @@ const Bucket = (props: any) => {
         onOk={() => setUploadProgressVisible(false)}
         onCancel={closeUploadModal}
       >
-        <List
-      header={<div>Header</div>}
-      footer={<div>Footer</div>}
-      bordered
-      dataSource={[fileInfo]}
-      renderItem={item => (
-        <List.Item>
-          <b> {item.fileName}</b>  
-          <Progress percent={progressData} size="small" status={uploadStatus} />
-          {actionRender}
-        </List.Item>
-      )}
-    />
-        {/* <p>{fileInfo?.fileName + ':'}</p>
-        <Progress percent={progressData} size="small" status={uploadStatus} /> */}
+        <Table rowKey="fileMd5" dataSource={uploadingFiles} columns={fileControlColumns} />
       </Modal>
     </div>
   );
