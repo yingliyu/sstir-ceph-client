@@ -167,6 +167,7 @@ const Bucket = (props: any) => {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const showCreateModal = () => {
+    setFileList([])
     setUploadModalVisible(true);
   };
   const closeUploadModal = () => {
@@ -224,31 +225,26 @@ const Bucket = (props: any) => {
   // 文件上传功能
   const [uploading, setUploading] = useState<boolean>(); // 加载状态
   const [fileList, setFileList] = useState<File[]>([]); // 文件列表
-  const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 文件信息
+  const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 当前文件信息
   const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
   const [chunkList, setChunkList] = useState<any[]>([]); // 上传成功的文件片
-  const [progressData, setProgressData] = useState(10);
+  const [progressData, setProgressData] = useState(5);
   const [uploadStatus, setUploadStatus] = useState<any>('normal'); // normal|success|exception|active
-  const [uploadingFiles, setUploadingFiles] = useState<FileItemType[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState<FileItemType[]>([]); // 上传文件列表
 
   let uploadTimer: any = null;
   let chunkInfo: any = {};
   let uploadProgressNum = 0;
-  // 文件上传进度
+  // 获取文件上传进度
   const getUploadProgress = async (fileMd5: any) => {
     clearTimeout(uploadTimer);
     const { fileSize } = fileInfo;
-    setUploadingFiles([
-      {
-        fileMd5: fileMd5,
-        fileSize: fileInfo?.fileSize,
-        fileName: fileInfo?.fileName,
-        filePieceNum: fileInfo?.filePieceNum,
-        status: getStatus(uploadStatus),
-        succeedTime: new Date(),
-        uploadSpeed: 0
-      }
-    ]);
+    // setUploadingFiles([
+    //   {
+    //    ...uploadingFiles[0],
+    //    fileName:fileInfo.fileName
+    //   }
+    // ]);
     try {
       const param: IUploadProgressRqt[] = [
         {
@@ -270,7 +266,7 @@ const Bucket = (props: any) => {
       if (uploadProgressNum < 5) {
         uploadTimer = setTimeout(() => {
           getUploadProgress(fileMd5);
-        }, 500);
+        }, 100);
       } else {
         if (result === 1) {
           message.error('服务器忙，请稍后再试');
@@ -281,14 +277,7 @@ const Bucket = (props: any) => {
       if (result === 0) {
         console.log('上传进度', fileUploadedDataLen);
         setProgressData(Math.ceil(fileUploadedDataLen / fileSize) * 100);
-        // setUploadingFiles([
-        //   {
-        //     ...uploadingFiles[0],
-        //     status: 0,
-        //     succeedTime: new Date(),
-        //     uploadSpeed: 0
-        //   }
-        // ]);
+        console.log(uploadingFiles);
         clearTimeout(uploadTimer);
       }
       if (resultdes.includes('success')) {
@@ -304,19 +293,8 @@ const Bucket = (props: any) => {
       message.error(error);
     }
   };
-const getStatus = (val:string)=>{
- switch (val){
-    case 'active':
-   return 0
-  case 'exception':
-    return -1
-  case 'success':
-    return 1
-  case 'pause':
-    return 3
- }
 
-}
+ 
   // upload
   const handleUpload = async () => {
     console.log(fileList);
@@ -325,30 +303,40 @@ const getStatus = (val:string)=>{
     setUploadProgressVisible(true);
     setUploadStatus('active');
     setUploading(true);
+    
     setUploadingFiles([
       {
-        fileMd5: fileInfo?.fileMd5,
+        fileMd5: '',
         fileSize: fileInfo?.fileSize,
         fileName: fileInfo?.fileName,
         filePieceNum: fileInfo?.filePieceNum,
-        status: getStatus(uploadStatus),
-        succeedTime: new Date(),
+        status: getStatus('active'),
         uploadSpeed: 0
       }
     ]);
+    
     const fileMD5Value: any = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
     setFileInfo({ ...fileInfo, fileMd5: fileMD5Value });
-    setUploadingFiles([
+    
+    try {
+     
+      const res = await uploadChunk(fileInfo, fileMD5Value); // 分片上传promise.all
+       setUploadingFiles([
       {
         ...uploadingFiles[0],
-        fileMd5: fileInfo?.fileMd5
+        status: getStatus('success'),
+        fileMd5: fileMD5Value,
+        fileSize: fileInfo?.fileSize,
+        fileName: fileInfo?.fileName,
+        filePieceNum: fileInfo?.filePieceNum,
       }
     ]);
-    await uploadChunk(fileInfo, fileMD5Value); // 分片上传
-    // 获取文件上传进度
-    uploadTimer = setTimeout(() => {
+      
+      // 获取文件上传进度(分片上传全部完成后执行)
       getUploadProgress(fileMD5Value);
-    }, 100);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   // 获取文件MD5
@@ -418,11 +406,16 @@ const getStatus = (val:string)=>{
     let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
     Object.keys(chunkInfo).forEach(async (key: any) => {
       console.log('*****', key);
-      let exit = chunkList.indexOf(key) > -1;
-      if (!exit) {
-        await upload(key, fileMD5Value);
-      }
+      requestList.push(upload(key, fileMD5Value));
+      // let exit = chunkList.indexOf(key) > -1;
+      // if (!exit) {
+      //   await upload(key, fileMD5Value);
+      // }
     });
+    setTimeout(() => setProgressData(99), 2000);
+    const res = Promise.all(requestList);
+    console.log('promise all,', res);
+    return res;
   };
   // 上传API
   const upload = async (i: number, fileMd5: string) => {
@@ -527,6 +520,19 @@ const getStatus = (val:string)=>{
   const continueUpload = () => {
     console.log('continueUpload');
   };
+ // 入参状态字符传返回对应的状态数值
+ const getStatus = (val: string) => {
+  switch (val) {
+    case 'active':
+      return 0;
+    case 'exception':
+      return -1;
+    case 'success':
+      return 1;
+    case 'pause':
+      return 3;
+  }
+};
 
   // 控制文件上传
   const actionRender = (status: Number) => {
@@ -535,38 +541,38 @@ const getStatus = (val:string)=>{
     switch (status) {
       case 0:
         actionEle = [
-          <PauseOutlined key="pause" onClick={pauseUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />
+          <PauseOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="pause" onClick={pauseUpload} />,
+          <CloseCircleOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
         ];
         // rateText = `${progressRatio}(${handleFileSize(uploadSpeed || 0)}/s)`;
         break;
       case -1:
         actionEle = [
-          <ReloadOutlined key="pause" onClick={continueUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />
+          <ReloadOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="pause" onClick={continueUpload} />,
+          <CloseOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
         ];
         rateText = 'Fail';
         break;
       case 2:
         actionEle = [
-          <CaretRightOutlined key="continue" onClick={continueUpload} />,
-          <CloseOutlined key="close" onClick={cancleUpload} />
+          <CaretRightOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="continue" onClick={continueUpload} />,
+          <CloseOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
         ];
         rateText = 'Pause';
         break;
       case 1:
-        // rateText = `Completed(${moment(succeedTime).format('YY/MM/DD HH:mm')})`;
+        actionEle = [`Completed`];
         break;
       case 3:
       default:
         rateText = 'Waitting...';
         break;
     }
-    return actionEle
+    return actionEle;
   };
   const fileControlColumns: any = [
     {
-      title: '名称',
+      title: '文件名',
       dataIndex: 'fileName',
       key: 'fileName',
       width: 100
@@ -578,7 +584,7 @@ const getStatus = (val:string)=>{
     //   sorter: true // 服务端排序
     // },
     {
-      title: '状态',
+      title: '进度',
       dataIndex: 'progress',
       key: 'progress',
       render: () => {
@@ -703,12 +709,19 @@ const getStatus = (val:string)=>{
         title="上传文件"
         style={{ top: 10, right: 0 }}
         mask={false}
+        keyboard={false}
+        maskClosable={false}
         visible={uploadProgressVisible}
         footer={null}
         onOk={() => setUploadProgressVisible(false)}
         onCancel={closeUploadModal}
       >
-        <Table rowKey="fileMd5" dataSource={uploadingFiles} columns={fileControlColumns} />
+        <Table
+        showHeader={false}
+          rowKey={(r, i) => i?.toString()! + Math.random()}
+          dataSource={uploadingFiles}
+          columns={fileControlColumns}
+        />
       </Modal>
     </div>
   );
