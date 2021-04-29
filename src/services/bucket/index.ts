@@ -1,5 +1,4 @@
-import { AppFastUpload, AppGet, AppPut, AppDelete } from '@/utils/request';
-import Axios from 'axios';
+import { AppPostUpload, AppGet, AppPost, AppPut, AppDelete } from '@/utils/request';
 
 import { IBucketsResponse, ICreateBucketRqt, IDelBucketRqt, IGetUserInfoResponse } from './types';
 
@@ -45,9 +44,11 @@ export interface IUploadProgressRqt {
 }
 // 文件上传
 export function uploadFilePiece(param: IUploadRqt[] | IUploadProgressRqt[]) {
-  return AppFastUpload(`/fastcgi`, param);
+  return AppPostUpload(`/fastcgi`, param, 'upload');
 }
-
+export function uploadFileCtrl(param: IUploadRqt[] | IUploadProgressRqt[]) {
+  return AppPostUpload(`/fastcgi`, param, 'ctrl');
+}
 // 获取文件列表
 export function getFileListInBucket(param: ICreateBucketRqt) {
   return AppGet<any>(`/client/object/${param.bucketName}`, param);

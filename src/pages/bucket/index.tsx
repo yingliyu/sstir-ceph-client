@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import appConfig from '@/config';
 import {
   Table,
   Button,
@@ -30,6 +31,7 @@ import { IUploadRqt, IUploadProgressRqt } from '@/services/bucket';
 import SparkMD5 from 'spark-md5';
 import { showLoading, hideLoading } from '@/utils/loading';
 import css from './index.module.less';
+import Axios from 'axios';
 export interface FileItemType {
   fileMd5: string; // 取文件uuid
   fileSize?: number;
@@ -167,7 +169,7 @@ const Bucket = (props: any) => {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const showCreateModal = () => {
-    setFileList([])
+    setFileList([]);
     setUploadModalVisible(true);
   };
   const closeUploadModal = () => {
@@ -256,7 +258,7 @@ const Bucket = (props: any) => {
         }
       ];
       console.log('进度入参：', param);
-      const res: any = await bucketApi.uploadFilePiece(param);
+      const res: any = await bucketApi.uploadFileCtrl(param);
       console.log('上传进度===', res);
       const { result, resultdes, fileUploadedDataLen } = res;
       if (result === 1) {
@@ -294,7 +296,6 @@ const Bucket = (props: any) => {
     }
   };
 
- 
   // upload
   const handleUpload = async () => {
     console.log(fileList);
@@ -303,7 +304,7 @@ const Bucket = (props: any) => {
     setUploadProgressVisible(true);
     setUploadStatus('active');
     setUploading(true);
-    
+
     setUploadingFiles([
       {
         fileMd5: '',
@@ -314,24 +315,23 @@ const Bucket = (props: any) => {
         uploadSpeed: 0
       }
     ]);
-    
+
     const fileMD5Value: any = await md5File(fileList[0]); // 第一步：按照 修改时间+文件名称+最后修改时间-->MD5
     setFileInfo({ ...fileInfo, fileMd5: fileMD5Value });
-    
+
     try {
-     
       const res = await uploadChunk(fileInfo, fileMD5Value); // 分片上传promise.all
-       setUploadingFiles([
-      {
-        ...uploadingFiles[0],
-        status: getStatus('success'),
-        fileMd5: fileMD5Value,
-        fileSize: fileInfo?.fileSize,
-        fileName: fileInfo?.fileName,
-        filePieceNum: fileInfo?.filePieceNum,
-      }
-    ]);
-      
+      setUploadingFiles([
+        {
+          ...uploadingFiles[0],
+          status: getStatus('active'), // success
+          fileMd5: fileMD5Value,
+          fileSize: fileInfo?.fileSize,
+          fileName: fileInfo?.fileName,
+          filePieceNum: fileInfo?.filePieceNum
+        }
+      ]);
+
       // 获取文件上传进度(分片上传全部完成后执行)
       getUploadProgress(fileMD5Value);
     } catch (error) {
@@ -400,7 +400,7 @@ const Bucket = (props: any) => {
   };
 
   // 分片上传
-  const uploadChunk = (file: any, fileMD5Value: string) => {
+  const uploadChunk = (file: any, fileMD5Value: string): any => {
     const requestList: any = [];
     const { fileSize, chunkSize } = file;
     let chunks = Math.ceil(fileSize / chunkSize); // 获取切片的个数
@@ -417,6 +417,7 @@ const Bucket = (props: any) => {
     console.log('promise all,', res);
     return res;
   };
+  let cancelRequest: any = [];
   // 上传API
   const upload = async (i: number, fileMd5: string) => {
     console.log(chunkInfo);
@@ -440,14 +441,34 @@ const Bucket = (props: any) => {
     ];
     console.log('第', i, '片文件--入参：', param);
     try {
-      const res: any = await bucketApi.uploadFilePiece(param);
-      const { result } = res;
-      console.log('第', i, '片文件--返回结果：', res);
+      Axios.post('/fastcgi', param, {
+        baseURL: appConfig.uploadUrl,
+        cancelToken: new Axios.CancelToken((cancel) => {
+          cancelRequest.push(cancel);
+          console.log(cancel);
+          // 这个参数 c 就是CancelToken构造函数里面自带的取消请求的函数，这里把该函数当参数用
+        }),
+        // 原生获取上传进度的事件
+        onUploadProgress: function (progressEvent) {
+          let uploadNum = 0;
+          let complete = ((progressEvent.loaded / progressEvent.total) * 100) | 0;
+          console.log('上传 ' + complete);
+          if (complete === 100) {
+            uploadNum++;
+          }
+          console.log(uploadNum);
+        }
+      }).then((res) => {
+        console.log(res);
+      });
+      // const res: any = await bucketApi.uploadFilePiece(param);
+      // const { result } = res;
+      // console.log('第', i, '片文件--返回结果：', res);
       setChunkList([...chunkList, i]);
-      if (result === 1) {
-        // "添加数据到缓存失败"再重新请求一次
-        upload(i, fileMd5);
-      }
+      // if (result === 1) {
+      //   // "添加数据到缓存失败"再重新请求一次
+      //   upload(i, fileMd5);
+      // }
     } catch (error) {
       console.log(error);
     }
@@ -511,28 +532,72 @@ const Bucket = (props: any) => {
   };
   const onBlur = () => {};
   const onFocus = () => {};
-  const pauseUpload = () => {
-    console.log('pause');
+  // 暂停上传
+  const pauseUpload = async () => {
+    console.log('pause===', fileInfo);
+    cancelRequest.forEach((ele: any, index: number) => {
+      ele.cancel('取消了请求'); // 在失败函数中返回这里自定义的错误信息
+      delete cancelRequest[index];
+    });
+    try {
+      const param: any = {
+        version: '1.0', // 版本号
+        clientType: 'Brower', // 来自浏览器端还是PC端
+        function: 500, // 500 暂停，501恢复上传，502中止上传，503重新上传
+        fileName: fileInfo.fileName, // 文件名
+        fileMd5: fileInfo.fileMd5 // 文件MD5
+      };
+      const res = await bucketApi.uploadFileCtrl([param]);
+      console.log(res);
+      setUploadingFiles([
+        {
+          ...uploadingFiles[0],
+          status: getStatus('pause')
+        }
+      ]);
+    } catch (error) {
+      console.log(error);
+    }
   };
   const cancleUpload = () => {
     console.log('cancleUpload');
   };
-  const continueUpload = () => {
-    console.log('continueUpload');
+  // 继续上传
+  const continueUpload = async () => {
+    console.log('continueUpload===', fileInfo);
+    try {
+      const param: any = {
+        version: '1.0', // 版本号
+        clientType: 'Brower', // 来自浏览器端还是PC端
+        function: 501, // 500 暂停，501恢复上传，502中止上传，503重新上传
+        fileName: fileInfo.fileName, // 文件名
+        fileMd5: fileInfo.fileMd5 // 文件MD5
+      };
+      const res = await bucketApi.uploadFileCtrl([param]);
+      console.log(res);
+      setUploadingFiles([
+        {
+          ...uploadingFiles[0],
+          status: getStatus('active')
+        }
+      ]);
+    } catch (error) {
+      console.log(error);
+    }
   };
- // 入参状态字符传返回对应的状态数值
- const getStatus = (val: string) => {
-  switch (val) {
-    case 'active':
-      return 0;
-    case 'exception':
-      return -1;
-    case 'success':
-      return 1;
-    case 'pause':
-      return 3;
-  }
-};
+  // 入参状态字符传返回对应的状态数值
+  const getStatus = (val: string) => {
+    switch (val) {
+      case 'active':
+        return 0;
+      case 'exception':
+        return -1;
+      case 'success':
+        return 1;
+      case 'pause':
+        return 2;
+    }
+  };
 
   // 控制文件上传
   const actionRender = (status: Number) => {
@@ -541,22 +606,34 @@ const Bucket = (props: any) => {
     switch (status) {
       case 0:
         actionEle = [
-          <PauseOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="pause" onClick={pauseUpload} />,
-          <CloseCircleOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
+          <PauseOutlined
+            style={{ fontSize: '18px', paddingRight: '5px' }}
+            key="pause"
+            onClick={pauseUpload}
+          />,
+          <CloseCircleOutlined style={{ fontSize: '18px' }} key="close" onClick={cancleUpload} />
         ];
         // rateText = `${progressRatio}(${handleFileSize(uploadSpeed || 0)}/s)`;
         break;
       case -1:
         actionEle = [
-          <ReloadOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="pause" onClick={continueUpload} />,
-          <CloseOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
+          <ReloadOutlined
+            style={{ fontSize: '18px', paddingRight: '5px' }}
+            key="pause"
+            onClick={continueUpload}
+          />,
+          <CloseOutlined style={{ fontSize: '18px' }} key="close" onClick={cancleUpload} />
         ];
         rateText = 'Fail';
         break;
       case 2:
         actionEle = [
-          <CaretRightOutlined style={{ fontSize: '18px', paddingRight: '5px' }} key="continue" onClick={continueUpload} />,
-          <CloseOutlined style={{ fontSize: '18px'}} key="close" onClick={cancleUpload} />
+          <CaretRightOutlined
+            style={{ fontSize: '18px', paddingRight: '5px' }}
+            key="continue"
+            onClick={continueUpload}
+          />,
+          <CloseOutlined style={{ fontSize: '18px' }} key="close" onClick={cancleUpload} />
         ];
         rateText = 'Pause';
         break;
@@ -717,7 +794,7 @@ const Bucket = (props: any) => {
         onCancel={closeUploadModal}
       >
         <Table
-        showHeader={false}
+          showHeader={false}
           rowKey={(r, i) => i?.toString()! + Math.random()}
           dataSource={uploadingFiles}
           columns={fileControlColumns}

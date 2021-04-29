@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,initial-scale=1.0"
+    />
+    <meta content="yes" name="apple-mobile-web-app-capable" />
+    <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+    <meta content="telephone=no" name="format-detection" />
+    <title>上传大文件</title>
+    <style type="text/css">
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      ul {
+        margin: 20px 0;
+      }
+      ul li {
+        display: flex;
+        align-items: center;
+        list-style: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      ul li span {
+        display: block;
+        flex: 1;
+        margin: 0 10px;
+      }
+      ul li i {
+        position: relative;
+        overflow: hidden;
+        display: block;
+        background-color: #ebedf0;
+        margin: 5px 0;
+        border-radius: 5px;
+        height: 10px;
+      }
+      ul li em {
+        position: absolute;
+        background-color: #3d88f2;
+        height: 100%;
+      }
+      ul li b {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        font-size: 10px;
+        line-height: 1;
+        text-align: center;
+        background-color: #5cb85c;
+      }
+      ul li em,
+      ul li b {
+        background-image: linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.15) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.15) 50%,
+          rgba(255, 255, 255, 0.15) 75%,
+          transparent 75%,
+          transparent
+        );
+        background-size: 15px 15px;
+        animation: reverse stripes 0.4s linear infinite, animate-positive 2s;
+      }
+      .hide {
+        display: none;
+      }
+      ul li .stop b,
+      ul li .stop em {
+        animation-play-state: paused;
+      }
+      ul li span:nth-last-child(2) i:nth-child(2) {
+        display: none;
+      }
+      ul li span:nth-last-child(2) .stop ~ i {
+        display: block;
+      }
+      @keyframes stripes {
+        from {
+          background-position: 15px 0;
+        }
+        to {
+          background-position: 0 0;
+        }
+      }
+      @keyframes positive {
+        0% {
+          width: 0;
+        }
+      }
+    </style>
+    <script
+      type="text/javascript"
+      src="https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.min.js"
+    ></script>
+  </head>
+  <body>
+    <input id="fileInput" type="file" multiple="multiple" name="" />
+    <ul id="box">
+      <!-- <li>
+        <span>文件名</span>
+        <span>文件类型</span>
+        <span>文件大小</span>
+        <span>上传进度</span>
+        <span>总进度</span>
+        <span>操作</span>
+    </li>
+    <li>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span>
+            <i><em></em></i>
+            <i><em></em></i>
+            <i><em></em></i>
+            <i><em></em></i>
+            <i><em></em></i>
+        </span>
+        <span>
+            <i><em></em></i>
+        </span>
+        <span>
+            <a href="javascript:;">上传</a>
+            <a href="javascript:;">暂停</a>
+            <a href="javascript:;">删除</a>
+        </span>
+    </li> -->
+    </ul>
+
+    <script type="text/javascript">
+      var SIZE = 1024 * 1024 * 7; // 切片大小
+      var FETCH_NUM = 5; // 上传文件同时发起请求数
+      var FETCH_MAP = {}; // 上传请求句柄，取消请求用
+      var FETCH_POOL = {}; // 每一个上传文件的份数
+      fileInput.addEventListener(
+        'change',
+        function () {
+          var files = this.files;
+          if (files.length) {
+            let str =
+              '<li><span>文件名</span><span>文件类型</span><span>文件大小</span><span>上传进度</span><span>总进度</span><span>操作</span></li>';
+            for (var i = 0; i < files.length; i++) {
+              var file = files[i];
+              str += `<li>
+                <span>${file.name}</span>
+                <span>${file.type}</span>
+                <span>${formatByte(file.size)}</span>
+                <span>
+                    <i><em></em></i>
+                    <i><em></em></i>
+                    <i><em></em></i>
+                    <i><em></em></i>
+                    <i><em></em></i>
+                </span>
+                <span>
+                    <i><b>文件读取中</b></i>
+                    <i><em></em></i>
+                </span>
+                <span data-index="${i}">
+                    <a data-control="1" href="javascript:;">上传</a>
+                    <a data-control="2" href="javascript:;">暂停</a>
+                    <a data-control="3" href="javascript:;">删除</a>
+                </span>
+            </li>`;
+            }
+            box.innerHTML = str;
+            readFilesStep(0); // 文件太大，同步读取
+          } else {
+            box.innerHTML = '';
+          }
+        },
+        false
+      );
+
+      box.addEventListener(
+        'click',
+        function (ev) {
+          var target = ev.target;
+          var control = target.dataset.control;
+          var index = Number(target.parentNode.dataset.index);
+          if (control === '1') {
+            // 上传
+            uploadItem(index);
+          } else if (control === '2') {
+            // 暂停
+            pauseItem(index);
+          } else if (control === '3') {
+            // 删除
+            delItem(index);
+          }
+        },
+        false
+      );
+
+      function readFilesStep(i) {
+        var files = fileInput.files;
+        if (!files[i]) {
+          return;
+        }
+        var oLi = box.children[i + 1];
+        oLi.dataset.count = Math.ceil(files[i].size / SIZE); // 总共多少份
+        var readProgress = oLi.children[4].children[0].children[0];
+        var reader = new FileReader();
+        reader.readAsDataURL(files[i]);
+        reader.onload = function () {
+          oLi.dataset.md5 = md5(this.result);
+          readProgress.innerHTML = '文件读取完毕';
+          readProgress.parentNode.className = 'stop hide';
+          readFilesStep(i + 1);
+          reader = null;
+        };
+        reader.onerror = function (e) {
+          console.error(e);
+          readProgress.innerHTML = '文件读取失败，请重新选择';
+          readFilesStep(i + 1);
+          reader = null;
+        };
+      }
+
+      function uploadItem(index) {
+        var file = fileInput.files[index];
+        var oLi = box.children[index + 1];
+        var isPlaying = Number(oLi.dataset.playing) || 0;
+        if (isPlaying) {
+          return;
+        }
+        oLi.dataset.playing = 1;
+        var fileMd5 = oLi.dataset.md5;
+        var count = oLi.dataset.count;
+        var lastLoaded = Number(oLi.dataset.lastLoaded || 0);
+        if (!fileMd5) {
+          alert('请等待文件读取');
+        } else {
+          var maxErrorTimes = 10; // 最大出错次数
+
+          // 第一次点开始会进行创建
+          if (!FETCH_POOL[fileMd5]) {
+            FETCH_POOL[fileMd5] = [];
+            for (var i = 0; i < count; i++) {
+              FETCH_POOL[fileMd5][i] = i;
+            }
+          }
+
+          FETCH_MAP[fileMd5] = [];
+          for (var i = 0; i < FETCH_NUM; i++) {
+            FETCH_MAP[fileMd5][i] = null;
+            step(i);
+          }
+          function step(i) {
+            var cur = FETCH_POOL[fileMd5].shift();
+            if (cur !== undefined) {
+              FETCH_MAP[fileMd5][i] = uploadStep({
+                file: file,
+                cur: cur,
+                count: count,
+                md5: fileMd5,
+                progressCb: function (e) {
+                  var loaded = lastLoaded + e.loaded;
+                  setProgress(loaded);
+                  var progressItem = ((e.loaded / e.total) * 100).toFixed(2) + '%';
+                  var oProgressItem = oLi.children[3].children[i];
+                  oProgressItem.title = progressItem;
+                  oProgressItem.children[0].style.width = progressItem;
+                  if (progressItem === '100.00%') {
+                    oProgressItem.className = 'stop';
+                  } else {
+                    oProgressItem.className = '';
+                  }
+                },
+                successCb: function () {
+                  lastLoaded += SIZE;
+                  setProgress(lastLoaded, true);
+                  step(i);
+                },
+                errorCb: function (status) {
+                  // 失败把当前份放在末尾，继续下一步
+                  FETCH_POOL[fileMd5].push(cur);
+                  if (status === 0) {
+                    // 手动取消 暂停
+                  } else if (maxErrorTimes--) {
+                    // 出错10次后不再上传，防止进入死循环
+                    step(i);
+                  }
+                }
+              });
+            }
+          }
+
+          function setProgress(loaded, isFinished) {
+            var oProgress = oLi.children[4].children[1];
+            // 实际上传的数据大小 > 文件大小，此处做修正处理
+            if (loaded > file.size) {
+              if (isFinished) {
+                loaded = file.size;
+                oProgress.className = 'stop';
+              } else {
+                loaded = file.size * 0.9999;
+              }
+            }
+            oLi.children[2].innerHTML = formatByte(loaded) + '/' + formatByte(file.size);
+
+            var progress = ((loaded / file.size) * 100).toFixed(2) + '%';
+            var lastProgress = oProgress.title || '0%';
+            // 并行上传 此处可能是线路1的进度和线路2的进度比较,优先显示最大值
+            progress = parseFloat(lastProgress) < parseFloat(progress) ? progress : lastProgress;
+            // 总进度条
+            oProgress.title = progress;
+            oProgress.children[0].style.width = progress;
+            if (isFinished) {
+              oLi.dataset.lastLoaded = loaded;
+            }
+          }
+        }
+      }
+
+      function uploadStep(obj) {
+        var file = obj.file;
+        var cur = obj.cur;
+        var fileMd5 = obj.md5;
+        var count = obj.count;
+        var progressCb = obj.progressCb;
+        var successCb = obj.successCb;
+        var errorCb = obj.errorCb;
+
+        var params = new FormData();
+        var filename = file.name;
+        var fileChunk = file.slice(SIZE * cur, SIZE * (cur + 1));
+        params.append('md5', fileMd5);
+        params.append('file', fileChunk);
+        params.append('cur', cur);
+        params.append('count', count);
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+              successCb && successCb(JSON.parse(xhr.responseText));
+            } else {
+              errorCb && errorCb(xhr.status);
+            }
+          }
+        };
+        xhr.upload.onprogress = function (e) {
+          progressCb && progressCb(e);
+        };
+        xhr.open('POST', 'http://10.12.0.149:9000/fastcgi', true);
+        xhr.send(params);
+        return xhr;
+      }
+
+      function pauseItem(index) {
+        var file = fileInput.files[index];
+        var oLi = box.children[index + 1];
+        var isPlaying = Number(oLi.dataset.playing) || 0;
+        if (!isPlaying) {
+          return;
+        }
+        oLi.dataset.playing = 0;
+        var fileMd5 = oLi.dataset.md5;
+
+        for (var i = 0; i < FETCH_MAP[fileMd5].length; i++) {
+          if (FETCH_MAP[fileMd5][i]) {
+            FETCH_MAP[fileMd5][i].abort();
+            FETCH_MAP[fileMd5][i] = null;
+          }
+        }
+      }
+
+      function delItem(index) {
+        var file = fileInput.files[index];
+        var oLi = box.children[index + 1];
+        var fileMd5 = oLi.dataset.md5;
+        oLi.className = 'hide';
+
+        if (FETCH_MAP[fileMd5]) {
+          for (var i = 0; i < FETCH_MAP[fileMd5].length; i++) {
+            if (FETCH_MAP[fileMd5][i]) {
+              FETCH_MAP[fileMd5][i].abort();
+              FETCH_MAP[fileMd5][i] = null;
+            }
+          }
+        }
+      }
+
+     
+
+      function formatByte(b) {
+        var kb = b / 1024;
+        if (kb >= 1024) {
+          var m = kb / 1024;
+          if (m >= 1024) {
+            var g = m / 1024;
+            return g.toFixed(2) + 'G';
+          } else {
+            return m.toFixed(2) + 'M';
+          }
+        } else {
+          return kb.toFixed(2) + 'K';
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 import instance from './axios';
+import axios from 'axios';
 import qs from 'qs';
 import { message } from 'antd';
 import appConfig from '@/config';
@@ -106,11 +107,19 @@ export function AppPut<T>(url: string, data?: any) {
   });
 }
 
-export function AppFastUpload<T>(url: string, data?: any) {
+export function AppPostUpload<T>(url: string, data?: any, type?: string) {
   return new Promise<T>((resolve, reject) => {
     instance
       .post(url, data, {
-        baseURL: appConfig.uploadUrl
+        baseURL: appConfig.uploadUrl,
+        cancelToken: new axios.CancelToken(function (cancel) {}),
+        // 原生获取上传进度的事件
+        onUploadProgress: function (progressEvent) {
+          if (type === 'upload') {
+            let complete = (((progressEvent.loaded / progressEvent.total) * 100) | 0) + '%';
+            console.log('上传 ' + complete);
+          }
+        }
       })
       .then((res) => {
         const { code, data, msg } = res.data;

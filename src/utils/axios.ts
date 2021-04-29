@@ -2,7 +2,6 @@ import axios from 'axios';
 import appConfig from '@/config';
 import { showLoading, hideLoading } from '@/utils/loading';
 import { getToken } from '@/utils/auth';
-
 // create axios instance
 const instance = axios.create({
   // withCredentials: true,
