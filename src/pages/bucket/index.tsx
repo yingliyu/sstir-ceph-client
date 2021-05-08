@@ -32,7 +32,9 @@ import SparkMD5 from 'spark-md5';
 import { showLoading, hideLoading } from '@/utils/loading';
 import css from './index.module.less';
 import Axios from 'axios';
+import { formatByte } from '@/utils/util';
 export interface FileItemType {
+  key?: string;
   fileMd5: string; // 取文件uuid
   fileSize?: number;
   fileName: string;
@@ -187,9 +189,12 @@ const Bucket = (props: any) => {
     }, 2000);
   };
 
-  const handleCreateCancel = () => {
+  const closeCancelModal = () => {
     console.log('Clicked cancel button');
     setUploadModalVisible(false);
+    setProgressData(0);
+    setUploadStatus('normal');
+    setLoadedSize(0);
   };
 
   interface IFileProps extends Blob {
@@ -228,9 +233,8 @@ const Bucket = (props: any) => {
   const [uploading, setUploading] = useState<boolean>(); // 加载状态
   const [fileList, setFileList] = useState<File[]>([]); // 文件列表
   const [fileInfo, setFileInfo] = useState<IFileItemProps & any>(); // 当前文件信息
-  const [curChunk, setCurChunk] = useState<IChunkProps | null>(null); // 分片文件信息
   const [chunkList, setChunkList] = useState<any[]>([]); // 上传成功的文件片
-  const [progressData, setProgressData] = useState(5);
+  const [progressData, setProgressData] = useState<number>(0);
   const [uploadStatus, setUploadStatus] = useState<any>('normal'); // normal|success|exception|active
   const [uploadingFiles, setUploadingFiles] = useState<FileItemType[]>([]); // 上传文件列表
 
@@ -241,12 +245,6 @@ const Bucket = (props: any) => {
   const getUploadProgress = async (fileMd5: any) => {
     clearTimeout(uploadTimer);
     const { fileSize } = fileInfo;
-    // setUploadingFiles([
-    //   {
-    //    ...uploadingFiles[0],
-    //    fileName:fileInfo.fileName
-    //   }
-    // ]);
     try {
       const param: IUploadProgressRqt[] = [
         {
@@ -270,25 +268,24 @@ const Bucket = (props: any) => {
           getUploadProgress(fileMd5);
         }, 100);
       } else {
+        clearTimeout(uploadTimer);
         if (result === 1) {
           message.error('服务器忙，请稍后再试');
           setUploadStatus('exception');
         }
-        clearTimeout(uploadTimer);
       }
       if (result === 0) {
         console.log('上传进度', fileUploadedDataLen);
-        setProgressData(Math.ceil(fileUploadedDataLen / fileSize) * 100);
         console.log(uploadingFiles);
         clearTimeout(uploadTimer);
       }
       if (resultdes.includes('success')) {
         // 上传成功
         hideLoading();
-        setUploadStatus('success');
+        // setUploadStatus('success');
         setUploading(false);
         getFileList();
-        setProgressData(100); // 进度100%
+        // setProgressData(100); // 进度100%
         // message.success(resultdes);
       }
     } catch (error) {
@@ -308,6 +305,7 @@ const Bucket = (props: any) => {
     setUploadingFiles([
       {
         fileMd5: '',
+        key: '0',
         fileSize: fileInfo?.fileSize,
         fileName: fileInfo?.fileName,
         filePieceNum: fileInfo?.filePieceNum,
@@ -326,11 +324,13 @@ const Bucket = (props: any) => {
           ...uploadingFiles[0],
           status: getStatus('active'), // success
           fileMd5: fileMD5Value,
+          key: '0',
           fileSize: fileInfo?.fileSize,
           fileName: fileInfo?.fileName,
           filePieceNum: fileInfo?.filePieceNum
         }
       ]);
+      console.log('888', res);
 
       // 获取文件上传进度(分片上传全部完成后执行)
       getUploadProgress(fileMD5Value);
@@ -373,8 +373,6 @@ const Bucket = (props: any) => {
           fileChunckSize: chunkSize
         };
         chunkInfo[filePieceNum] = curChunkInfo;
-        // setCurChunk(curChunkInfo);
-        // chunkList.push(curChunkInfo)
 
         if (filePieceNum < chunks) {
           loadNext();
@@ -407,22 +405,20 @@ const Bucket = (props: any) => {
     Object.keys(chunkInfo).forEach(async (key: any) => {
       console.log('*****', key);
       requestList.push(upload(key, fileMD5Value));
-      // let exit = chunkList.indexOf(key) > -1;
-      // if (!exit) {
-      //   await upload(key, fileMD5Value);
-      // }
     });
-    setTimeout(() => setProgressData(99), 2000);
+    // setTimeout(() => setProgressData(99), 2000);
     const res = Promise.all(requestList);
-    console.log('promise all,', res);
     return res;
   };
-  let cancelRequest: any = [];
+  let cancelRequest: any = []; // 取消上传
+  const [loadedSize, setLoadedSize] = useState<number>(0);
+  let curChunkNum = 0;
   // 上传API
   const upload = async (i: number, fileMd5: string) => {
     console.log(chunkInfo);
-    const { file, fileName, fileSize, chunkSize } = fileInfo;
-    const { filePieceMd5, filePieceData, fileChunckSize } = chunkInfo[i];
+
+    const { file, fileName, fileSize, chunkSize, chunks } = fileInfo;
+    const { filePieceMd5, filePieceData, fileChunckSize, filePieceDataLen } = chunkInfo[i];
     let end = (i + 1) * chunkSize >= file.size ? file.size : (i + 1) * chunkSize;
     const param: IUploadRqt[] = [
       {
@@ -443,24 +439,40 @@ const Bucket = (props: any) => {
     try {
       Axios.post('/fastcgi', param, {
         baseURL: appConfig.uploadUrl,
+        // cancelToken:source.token,
         cancelToken: new Axios.CancelToken((cancel) => {
           cancelRequest.push(cancel);
-          console.log(cancel);
+          console.log('cancelRequest',cancelRequest);
           // 这个参数 c 就是CancelToken构造函数里面自带的取消请求的函数，这里把该函数当参数用
         }),
         // 原生获取上传进度的事件
         onUploadProgress: function (progressEvent) {
           let uploadNum = 0;
           let complete = ((progressEvent.loaded / progressEvent.total) * 100) | 0;
-          console.log('上传 ' + complete);
           if (complete === 100) {
             uploadNum++;
           }
-          console.log(uploadNum);
         }
-      }).then((res) => {
-        console.log(res);
-      });
+      }
+      )
+        .then((res) => {
+          curChunkNum++; // 当前已上传片数
+          console.log('上传第几片', i, res);
+          const progress: any = `${
+            curChunkNum < chunks ? ((curChunkNum / chunks) * 100).toFixed(2) : 100
+          }`;
+          setLoadedSize(Number(((progress / 100) * fileSize).toFixed(2)));
+          setProgressData(progress);
+          if (progress >= 100) {
+            setUploadStatus('success');
+          }
+        })
+        .catch((error) => {
+          if (Axios.isCancel(error)) {
+            // 主要是这里
+            message.warning('取消上传操作成功');
+          }
+        });
       // const res: any = await bucketApi.uploadFilePiece(param);
       // const { result } = res;
       // console.log('第', i, '片文件--返回结果：', res);
@@ -478,7 +490,7 @@ const Bucket = (props: any) => {
     const currentChunk = 0;
     const fileSize = file.size;
     const fileName = file.name;
-    const chunkSize = 1024 * 1024 * 7; // 每个文件切片大小定为7MB: 1024*1024*7
+    const chunkSize = 1024 * 1024 * 20; // 每个文件切片大小定为7MB: 1024*1024*7
     const chunks = Math.ceil(fileSize / chunkSize); // 计算文件切片总数
     setFileInfo({
       file,
@@ -534,10 +546,8 @@ const Bucket = (props: any) => {
   const onFocus = () => {};
   // 暂停上传
   const pauseUpload = async () => {
-    console.log('pause===', fileInfo);
     cancelRequest.forEach((ele: any, index: number) => {
       ele.cancel('取消了请求'); // 在失败函数中返回这里自定义的错误信息
-      delete cancelRequest[index];
     });
     try {
       const param: any = {
@@ -548,6 +558,7 @@ const Bucket = (props: any) => {
         fileMd5: fileInfo.fileMd5 // 文件MD5
       };
       const res = await bucketApi.uploadFileCtrl([param]);
+
       console.log(res);
       setUploadingFiles([
         {
@@ -652,20 +663,31 @@ const Bucket = (props: any) => {
       title: '文件名',
       dataIndex: 'fileName',
       key: 'fileName',
-      width: 100
+      width: 120,
+      ellipsis: true,
+      render: (text: string, record: any) => {
+        return (
+          <Tooltip placement="topLeft" title={text}>
+            <span>{text}</span>
+          </Tooltip>
+        );
+      }
     },
-    // {
-    //   title: '大小',
-    //   dataIndex: 'fileSize',
-    //   key: 'fileSize',
-    //   sorter: true // 服务端排序
-    // },
     {
       title: '进度',
       dataIndex: 'progress',
       key: 'progress',
+      width: 200,
       render: () => {
         return <Progress percent={progressData} size="small" status={uploadStatus} />;
+      }
+    },
+    {
+      title: '大小',
+      dataIndex: 'fileSize',
+      key: 'fileSize',
+      render: () => {
+        return formatByte(loadedSize) + '/' + formatByte(fileInfo.fileSize);
       }
     },
     {
@@ -725,7 +747,7 @@ const Bucket = (props: any) => {
         forceRender={true}
         onOk={handleCreateOk}
         confirmLoading={confirmLoading}
-        onCancel={handleCreateCancel}
+        onCancel={closeCancelModal}
         footer={null}
       >
         <Steps size="small" current={curStep}>
@@ -785,6 +807,7 @@ const Bucket = (props: any) => {
       <Modal
         title="上传文件"
         style={{ top: 10, right: 0 }}
+        width={600}
         mask={false}
         keyboard={false}
         maskClosable={false}
@@ -795,7 +818,7 @@ const Bucket = (props: any) => {
       >
         <Table
           showHeader={false}
-          rowKey={(r, i) => i?.toString()! + Math.random()}
+          // rowKey={(r, i) => i?.toString()! + Math.random()}
           dataSource={uploadingFiles}
           columns={fileControlColumns}
         />
