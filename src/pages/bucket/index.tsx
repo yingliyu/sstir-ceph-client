@@ -442,7 +442,7 @@ const Bucket = (props: any) => {
         // cancelToken:source.token,
         cancelToken: new Axios.CancelToken((cancel) => {
           cancelRequest.push(cancel);
-          console.log('cancelRequest',cancelRequest);
+          console.log('cancelRequest', cancelRequest);
           // 这个参数 c 就是CancelToken构造函数里面自带的取消请求的函数，这里把该函数当参数用
         }),
         // 原生获取上传进度的事件
@@ -453,8 +453,7 @@ const Bucket = (props: any) => {
             uploadNum++;
           }
         }
-      }
-      )
+      })
         .then((res) => {
           curChunkNum++; // 当前已上传片数
           console.log('上传第几片', i, res);

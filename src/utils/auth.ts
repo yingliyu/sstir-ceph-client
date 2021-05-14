@@ -28,30 +28,5 @@ export function removeToken(): void {
   Cookies.remove(TOKEN_KEY);
 }
 
-// 抽离公共函数处理异步函数
-export const promiseWrap = (promise:any) => {
-  return promise
-    .then((data:any) => [null, data])
-    .catch((error:any) => [error, null])
-}
-// promise优雅的错误处理使用
-// const [error3, data3] = await promiseWrap(fetchDataPromise('url3', true));
-//   if (error3) {
-//     console.log('error3：', error3);
-//   }
 
-// 文件大小自动赋予单位
-export function formatByte(b:number) {
-  var kb = b / 1024;
-  if (kb >= 1024) {
-    var m = kb / 1024;
-    if (m >= 1024) {
-      var g = m / 1024;
-      return g.toFixed(2) + 'G';
-    } else {
-      return m.toFixed(2) + 'M';
-    }
-  } else {
-    return kb.toFixed(2) + 'K';
-  }
-}
+

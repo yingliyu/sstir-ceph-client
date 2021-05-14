@@ -18,3 +18,12 @@ export const stringToJson = (key: string) => {
   }
   return {};
 };
+// 抽离公共函数处理异步函数
+export const promiseWrap = (promise: any) => {
+  return promise.then((data: any) => [null, data]).catch((error: any) => [error, null]);
+};
+// promise优雅的错误处理使用
+// const [error3, data3] = await promiseWrap(fetchDataPromise('url3', true));
+//   if (error3) {
+//     console.log('error3：', error3);
+//   }
